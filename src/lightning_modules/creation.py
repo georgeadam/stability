@@ -1,3 +1,3 @@
 from src.base.factory import Factory
 
-trainers = Factory()
+lightning_modules = Factory()

@@ -3,7 +3,7 @@ import wandb
 from pytorch_lightning import LightningModule
 from torchmetrics.functional import accuracy
 
-from .creation import trainers
+from .creation import lightning_modules
 
 
 class Standard(LightningModule):
@@ -48,4 +48,4 @@ class Standard(LightningModule):
         return preds, loss, acc
 
 
-trainers.register_builder("standard", Standard)
+lightning_modules.register_builder("standard", Standard)
