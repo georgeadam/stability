@@ -1,0 +1,11 @@
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module: standard
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/cold_start/${misc.seed}
+    output_subdir: .

@@ -1,0 +1,3 @@
+name: lenet
+params:
+    size: 1
