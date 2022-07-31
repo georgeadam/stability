@@ -30,7 +30,8 @@ def fit_and_predict(args, dataset, logger):
                       deterministic=True,
                       **args.trainer)
     trainer.fit(lightning_module, datamodule=dataset)
-    preds = trainer.predict(lightning_module, datamodule=dataset)
+    logits = trainer.predict(lightning_module, datamodule=dataset)
+    preds = torch.argmax(logits, dim=1)
     preds = torch.cat(preds).detach().cpu().numpy()
 
     return preds

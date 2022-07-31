@@ -19,9 +19,8 @@ class Standard(LightningModule):
         x, y = batch
 
         logits = self.model(x)
-        preds = torch.argmax(logits, dim=1)
 
-        return preds
+        return logits
 
     def training_step(self, batch, batch_idx):
         _, loss, acc = self._get_preds_loss_accuracy(batch)
