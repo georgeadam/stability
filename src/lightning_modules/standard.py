@@ -14,6 +14,15 @@ class Standard(LightningModule):
         self.lr = lr
         self.loss = torch.nn.CrossEntropyLoss()
 
+    def forward(self, batch):
+        # Used only by trainer.predict() to evaluate the model's predictions
+        x, y = batch
+
+        logits = self.model(x)
+        preds = torch.argmax(logits, dim=1)
+
+        return preds
+
     def training_step(self, batch, batch_idx):
         _, loss, acc = self._get_preds_loss_accuracy(batch)
 
@@ -40,7 +49,7 @@ class Standard(LightningModule):
 
     def _get_preds_loss_accuracy(self, batch):
         x, y = batch
-        logits = self(x)
+        logits = self.model(x)
         preds = torch.argmax(logits, dim=1)
         loss = self.loss(logits, y)
         acc = accuracy(preds, y)
