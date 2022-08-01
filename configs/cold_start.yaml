@@ -1,3 +1,4 @@
+experiment_name: cold_start
 defaults:
     - callbacks: default
     - data: mnist

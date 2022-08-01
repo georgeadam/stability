@@ -29,6 +29,7 @@ def fit_and_predict(args, dataset, logger):
     lightning_module = lightning_modules.create(args.lightning_module.name, model=model, **args.lightning_module.params)
     trainer = Trainer(logger=logger,
                       log_every_n_steps=1,
+                      gpus=1,
                       callbacks=[EarlyStopping("val/loss", **args.callbacks.early_stopping)],
                       deterministic=True,
                       enable_checkpointing=False,
@@ -62,6 +63,7 @@ def main(args: DictConfig):
     original_preds = fit_and_predict(args, dataset, wandb_logger)
 
     # Training on combined data
+    dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
     new_preds = fit_and_predict(args, dataset, wandb_logger)
 
