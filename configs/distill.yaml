@@ -1,0 +1,13 @@
+experiment_name: distill
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@distill_module: distill
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/distillation/${distill_module.params.alpha}/${misc.seed}
+    output_subdir: .
