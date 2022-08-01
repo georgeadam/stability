@@ -26,20 +26,22 @@ class Standard(LightningModule):
         _, loss, acc = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
-        self.log('train_loss', loss)
-        self.log('train_accuracy', acc)
+        self.log('train/loss', loss, on_step=False, on_epoch=True)
+        self.log('train/accuracy', acc, on_step=False, on_epoch=True)
+        self.log('train/epoch', self.current_epoch, on_step=False, on_epoch=True)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
         if self.global_step == 0:
-            wandb.define_metric('val_accuracy', summary='max')
+            wandb.define_metric('val/accuracy', summary='max')
 
         preds, loss, acc = self._get_preds_loss_accuracy(batch)
 
         # Log loss and metric
-        self.log('val_loss', loss)
-        self.log('val_accuracy', acc)
+        self.log('val/loss', loss, on_step=False, on_epoch=True)
+        self.log('val/accuracy', acc, on_step=False, on_epoch=True)
+        self.log('val/epoch', self.current_epoch, on_step=False, on_epoch=True)
 
         return preds
 

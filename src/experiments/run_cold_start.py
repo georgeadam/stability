@@ -3,6 +3,7 @@ import os
 
 import hydra
 import torch
+import wandb
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
@@ -21,18 +22,21 @@ config_path = os.path.join(ROOT_DIR, "configs")
 
 
 def fit_and_predict(args, dataset, logger):
-    seed_everything(args.misc.seed)
+    if args.misc.reset_random_state:
+        seed_everything(args.misc.seed)
+
     model = models.create(args.model.name, output_dim=dataset.output_dim, **args.model.params)
     lightning_module = lightning_modules.create(args.lightning_module.name, model=model, **args.lightning_module.params)
     trainer = Trainer(logger=logger,
                       log_every_n_steps=1,
-                      callbacks=[EarlyStopping("val_loss", **args.callbacks.early_stopping)],
+                      callbacks=[EarlyStopping("val/loss", **args.callbacks.early_stopping)],
                       deterministic=True,
+                      enable_checkpointing=False,
                       **args.trainer)
     trainer.fit(lightning_module, datamodule=dataset)
     logits = trainer.predict(lightning_module, datamodule=dataset)
-    preds = torch.argmax(logits, dim=1)
-    preds = torch.cat(preds).detach().cpu().numpy()
+    logits = torch.cat(logits)
+    preds = torch.argmax(logits, dim=1).detach().cpu().numpy()
 
     return preds
 
@@ -50,7 +54,8 @@ def main(args: DictConfig):
     )
 
     # Initial training
-    wandb_logger = WandbLogger(project="stability", prefix="initial", name="{}_{}_cold_start-{}".format(args.data.name,
+    wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    wandb_logger = WandbLogger(project="stability", prefix="initial", name="{}_{}_cold_start_shift_seed-{}".format(args.data.name,
                                                                                                         args.model.name,
                                                                                                         args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
@@ -65,9 +70,15 @@ def main(args: DictConfig):
     overall_churn = (original_preds != new_preds).astype(float).mean()
     relevant_churn = ((original_preds == labels) & (new_preds != original_preds)).astype(float).mean()
 
+    # Compute accuracy
+    original_accuracy = (original_preds == labels).astype(float).mean()
+    new_accuracy = (new_preds == labels).astype(float).mean()
+
     wandb_logger = WandbLogger(project="stability")
     wandb_logger.log_metrics({"overall_churn": overall_churn,
-                              "relevant_churn": relevant_churn})
+                              "relevant_churn": relevant_churn,
+                              "original_accuracy": original_accuracy,
+                              "new_accuracy": new_accuracy})
 
     # Save predictions
     save_predictions(original_preds, new_preds)
