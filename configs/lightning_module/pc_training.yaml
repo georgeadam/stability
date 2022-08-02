@@ -1,0 +1,6 @@
+name: pc_training
+params:
+    lr: 0.001
+    alpha: 1.0
+    beta: 5.0
+    gamma: 1.0

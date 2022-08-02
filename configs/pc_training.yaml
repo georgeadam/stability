@@ -1,0 +1,13 @@
+experiment_name: pc_training
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@pc_module: pc_training
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/pc_training/${pc_module.params.alpha}_${pc_module.params.beta}/${misc.seed}
+    output_subdir: .

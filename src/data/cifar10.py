@@ -27,8 +27,8 @@ class CIFAR10DataModule(LightningDataModule):
         normalize = transforms.Normalize(mean=dataset_mean, std=dataset_std)
 
         self.train_transform = transforms.Compose([
-            # transforms.RandomCrop(32, padding=4),
-            # transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
         ])

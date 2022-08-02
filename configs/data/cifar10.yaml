@@ -1,0 +1,7 @@
+name: cifar10
+params:
+    train_size: 10000
+    val_size: 100
+    batch_size: 32
+    extra_size: 1000
+    data_dir: data/cifar10
