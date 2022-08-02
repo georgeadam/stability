@@ -26,7 +26,7 @@ def fit_and_predict_original(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.output_dim)
+    model = create_model(args, dataset.num_classes)
     module = create_module_original(args, model)
     trainer = create_trainer(args, logger)
     trainer.fit(module, datamodule=dataset)
@@ -46,7 +46,7 @@ def fit_and_predict_distill(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.output_dim)
+    model = create_model(args, dataset.num_classes)
     module = create_module_distill(args, model)
     trainer = create_trainer(args, logger)
     trainer.fit(module, datamodule=dataset)
@@ -58,8 +58,8 @@ def fit_and_predict_distill(args, dataset, logger):
     return test_preds
 
 
-def create_model(args, output_dim):
-    return models.create(args.model.name, output_dim=output_dim, **args.model.params)
+def create_model(args, num_classes):
+    return models.create(args.model.name, num_classes=num_classes, **args.model.params)
 
 
 def create_module_original(args, model):

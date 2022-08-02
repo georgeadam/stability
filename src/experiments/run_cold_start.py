@@ -25,7 +25,7 @@ def fit_and_predict(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = models.create(args.model.name, output_dim=dataset.output_dim, **args.model.params)
+    model = models.create(args.model.name, num_classes=dataset.num_classes, **args.model.params)
     lightning_module = lightning_modules.create(args.lightning_module.name, model=model, **args.lightning_module.params)
     trainer = Trainer(logger=logger,
                       log_every_n_steps=1,

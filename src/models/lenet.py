@@ -4,7 +4,7 @@ from .creation import models
 
 
 class LeNet(nn.Module):
-    def __init__(self, output_dim, size):
+    def __init__(self, num_classes, size):
         super().__init__()
 
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=16 * size, kernel_size=5)
@@ -14,7 +14,7 @@ class LeNet(nn.Module):
 
         self.fc1 = nn.Linear(in_features=384 * size, out_features=128 * size)
         self.fc2 = nn.Linear(in_features=128 * size, out_features=84)
-        self.fc3 = nn.Linear(84, output_dim)
+        self.fc3 = nn.Linear(84, num_classes)
 
         self.relu = nn.ReLU()
 

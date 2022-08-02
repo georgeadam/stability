@@ -67,7 +67,7 @@ class MNISTDataModule(LightningDataModule):
         self.extra_data = DistillDatasetWrapper(self.extra_data, knowledge)
 
     @property
-    def output_dim(self):
+    def num_classes(self):
         return 10
 
     @property
