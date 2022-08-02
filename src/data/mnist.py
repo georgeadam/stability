@@ -8,7 +8,6 @@ from torchvision.transforms import transforms
 
 from settings import ROOT_DIR
 from .creation import datasets
-from .distill import DistillDatasetWrapper
 
 
 class MNISTDataModule(LightningDataModule):
@@ -41,7 +40,6 @@ class MNISTDataModule(LightningDataModule):
                                                         [self.train_size + self.extra_size, self.val_size])
             self.train_data, self.extra_data = random_split(combined_data, [self.train_size, self.extra_size])
 
-
             self.test_data = MNIST(self.data_dir, train=False, transform=self.transform)
             self.predict_data = MNIST(self.data_dir, train=False, transform=self.transform)
 
@@ -59,12 +57,6 @@ class MNISTDataModule(LightningDataModule):
 
     def merge_train_and_extra_data(self):
         self.train_data = ConcatDataset([self.train_data, self.extra_data])
-
-    def augment_train_data(self, knowledge):
-        self.train_data = DistillDatasetWrapper(self.train_data, knowledge)
-
-    def augment_extra_data(self, knowledge):
-        self.extra_data = DistillDatasetWrapper(self.extra_data, knowledge)
 
     @property
     def num_classes(self):

@@ -1,7 +1,6 @@
 import logging
 import os
 
-import numpy as np
 import hydra
 import torch
 import wandb
@@ -16,7 +15,6 @@ from settings import ROOT_DIR
 from src.data import datasets
 from src.lightning_modules import lightning_modules
 from src.models import models
-from src.utils.save import save_predictions
 
 os.chdir(ROOT_DIR)
 config_path = os.path.join(ROOT_DIR, "configs")
@@ -35,19 +33,15 @@ def fit_and_predict_original(args, dataset, logger):
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader())
-    train_logits = torch.cat(train_logits)
-    train_probs = torch.nn.Softmax(dim=1)(train_logits).detach().cpu().numpy()
-
-    return train_probs, test_preds
+    return model, test_preds
 
 
-def fit_and_predict_distill(args, dataset, logger):
+def fit_and_predict_distill(args, dataset, original_model, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
     model = create_model(args, dataset.num_classes)
-    module = create_module_distill(args, model)
+    module = create_module_distill(args, model, original_model)
     trainer = create_trainer(args, logger)
     trainer.fit(module, datamodule=dataset)
 
@@ -65,8 +59,11 @@ def create_model(args, num_classes):
 def create_module_original(args, model):
     return lightning_modules.create(args.orig_module.name, model=model, **args.orig_module.params)
 
-def create_module_distill(args, model):
-    return lightning_modules.create(args.distill_module.name, model=model, **args.distill_module.params)
+
+def create_module_distill(args, model, original_model):
+    return lightning_modules.create(args.distill_module.name, model=model, original_model=original_model,
+                                    **args.distill_module.params)
+
 
 def create_trainer(args, logger):
     trainer = Trainer(logger=logger,
@@ -100,14 +97,12 @@ def main(args: DictConfig):
                                                                       args.distill_module.params.alpha,
                                                                       args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_train_probs, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
+    original_model, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
 
     # Training on combined data
-    dataset.augment_train_data(original_train_probs)
-    dataset.augment_extra_data(np.zeros_like(original_train_probs))
     dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
-    new_test_preds = fit_and_predict_distill(args, dataset, wandb_logger)
+    new_test_preds = fit_and_predict_distill(args, dataset, original_model, wandb_logger)
 
     # Compute churn
     labels = dataset.labels

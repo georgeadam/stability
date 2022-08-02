@@ -9,7 +9,6 @@ from torchvision.transforms import transforms
 
 from settings import ROOT_DIR
 from .creation import datasets
-from .distill import DistillDatasetWrapper
 
 
 class CIFAR10DataModule(LightningDataModule):
@@ -76,12 +75,6 @@ class CIFAR10DataModule(LightningDataModule):
 
     def merge_train_and_extra_data(self):
         self.train_data = ConcatDataset([self.train_data, self.extra_data])
-
-    def augment_train_data(self, knowledge):
-        self.train_data = DistillDatasetWrapper(self.train_data, knowledge)
-
-    def augment_extra_data(self, knowledge):
-        self.extra_data = DistillDatasetWrapper(self.extra_data, knowledge)
 
     @property
     def num_classes(self):
