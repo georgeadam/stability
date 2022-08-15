@@ -53,7 +53,10 @@ class CIFAR10DataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if (stage == "fit" or stage is None) and not self.train_data:
             cifar_full = CIFAR10(self.data_dir, train=True, transform=self.train_transform)
-            train_indices, val_indices = train_test_split(np.arange(len(cifar_full)), test_size=self.val_size)
+            all_indices = np.random.choice(np.arange(len(cifar_full)),
+                                           size=self.train_size + self.val_size + self.extra_size,
+                                           replace=False)
+            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size)
             cifar_train = copy.deepcopy(cifar_full)
             cifar_val = copy.deepcopy(cifar_full)
 

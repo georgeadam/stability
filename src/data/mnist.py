@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
-from torch.utils.data import ConcatDataset, DataLoader, random_split
+from torch.utils.data import ConcatDataset, DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
@@ -37,7 +37,10 @@ class MNISTDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if (stage == "fit" or stage is None) and not self.train_data:
             mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
-            train_indices, val_indices = train_test_split(np.arange(len(mnist_full)), test_size=self.val_size)
+            all_indices = np.random.choice(np.arange(len(mnist_full)),
+                                           size=self.train_size + self.val_size + self.extra_size,
+                                           replace=False)
+            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size)
             mnist_train = copy.deepcopy(mnist_full)
             mnist_val = copy.deepcopy(mnist_full)
 
