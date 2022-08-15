@@ -7,10 +7,11 @@ from .creation import lightning_modules
 
 
 class Distill(LightningModule):
-    def __init__(self, model, lr, alpha):
+    def __init__(self, model, original_model, lr, alpha):
         super().__init__()
 
         self.model = model
+        self.original_model = original_model
         self.lr = lr
         self.alpha = alpha
         self.ce_loss = torch.nn.CrossEntropyLoss()
@@ -53,15 +54,20 @@ class Distill(LightningModule):
         return preds
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
     def _get_preds_loss_accuracy(self, batch):
-        x, y, knowledge = batch
+        x, y = batch
         logits = self.model(x)
         probs = torch.nn.Softmax(dim=1)(logits)
+
+        with torch.no_grad():
+            old_logits = self.original_model(x)
+
+        old_probs = torch.nn.Softmax(dim=1)(old_logits)
         preds = torch.argmax(logits, dim=1)
         ce_loss = self.ce_loss(logits, y)
-        distill_loss = self.distill_loss(probs, knowledge, y)
+        distill_loss = self.distill_loss(probs, old_probs, y)
         acc = accuracy(preds, y)
 
         return preds, ce_loss, distill_loss, acc
@@ -71,8 +77,8 @@ class DistillLoss(object):
     def __init__(self):
         pass
 
-    def __call__(self, y_pred, knowledge, y_true):
-        loss = knowledge * (- torch.log(y_pred))
+    def __call__(self, probs, old_probs, y_true):
+        loss = old_probs * (- torch.log(probs))
         loss = torch.sum(loss, dim=1)
 
         if (loss > 0).sum() == 0:
