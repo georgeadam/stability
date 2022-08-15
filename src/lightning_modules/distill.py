@@ -27,27 +27,28 @@ class Distill(LightningModule):
 
     def training_step(self, batch, batch_idx):
         _, ce_loss, distill_loss, acc = self._get_preds_loss_accuracy(batch)
+        total_loss = ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
 
         # Log loss and metric
+        self.log('train/loss', total_loss, on_step=False, on_epoch=True)
         self.log('train/loss_ce', ce_loss, on_step=False, on_epoch=True)
         self.log('train/loss_distill', distill_loss, on_step=False, on_epoch=True)
         self.log('train/accuracy', acc, on_step=False, on_epoch=True)
         self.log('train/epoch', self.current_epoch, on_step=False, on_epoch=True)
 
-        return ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
+        return total_loss
 
     def validation_step(self, batch, batch_idx):
         if self.global_step == 0:
             wandb.define_metric('val_accuracy', summary='max')
 
-        x, y = batch
-        logits = self.model(x)
-        preds = torch.argmax(logits, dim=1)
-        ce_loss = self.ce_loss(logits, y)
-        acc = accuracy(preds, y)
+        preds, ce_loss, distill_loss, acc = self._get_preds_loss_accuracy(batch)
+        total_loss = ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
 
         # Log loss and metric
-        self.log('val/loss', ce_loss, on_step=False, on_epoch=True)
+        self.log('val/loss', total_loss, on_step=False, on_epoch=True)
+        self.log('val/loss_ce', ce_loss, on_step=False, on_epoch=True)
+        self.log('val/loss_distill', distill_loss, on_step=False, on_epoch=True)
         self.log('val/accuracy', acc, on_step=False, on_epoch=True)
         self.log('val/epoch', self.current_epoch, on_step=False, on_epoch=True)
 
