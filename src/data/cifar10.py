@@ -1,15 +1,16 @@
+import copy
 import os
 from typing import Optional
 
 import numpy as np
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, random_split
+from sklearn.model_selection import train_test_split
+from torch.utils.data import ConcatDataset, DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import transforms
 
 from settings import ROOT_DIR
 from .creation import datasets
-from .distill import DistillDatasetWrapper
 
 
 class CIFAR10DataModule(LightningDataModule):
@@ -39,6 +40,7 @@ class CIFAR10DataModule(LightningDataModule):
         ])
 
         self.train_data = None
+        self.orig_train_data = None
         self.extra_data = None
         self.test_data = None
         self.predict_data = None
@@ -50,20 +52,40 @@ class CIFAR10DataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         if (stage == "fit" or stage is None) and not self.train_data:
-            mnist_full = CIFAR10(self.data_dir, train=True, transform=self.train_transform)
-            mnist_sub, mnist_rest = random_split(mnist_full,
-                                                 [self.train_size + self.extra_size + self.val_size,
-                                                  len(mnist_full) - self.train_size - self.extra_size - self.val_size])
-            combined_data, self.val_data = random_split(mnist_sub,
-                                                        [self.train_size + self.extra_size, self.val_size])
+            cifar_full = CIFAR10(self.data_dir, train=True, transform=self.train_transform)
+            train_indices, val_indices = train_test_split(np.arange(len(cifar_full)), test_size=self.val_size)
+            cifar_train = copy.deepcopy(cifar_full)
+            cifar_val = copy.deepcopy(cifar_full)
+
+            cifar_train.data = cifar_train.data[train_indices]
+            cifar_train.targets = [cifar_train.targets[i] for i in train_indices]
+
+            cifar_val.data = cifar_val.data[val_indices]
+            cifar_val.targets = [cifar_val.targets[i] for i in val_indices]
+
+            train_indices, extra_indices = train_test_split(np.arange(len(cifar_train)), test_size=self.extra_size)
+            cifar_extra = copy.deepcopy(cifar_train)
+
+            cifar_train.data = cifar_train.data[train_indices]
+            cifar_train.targets = [cifar_train.targets[i] for i in train_indices]
+
+            cifar_extra.data = cifar_extra.data[extra_indices]
+            cifar_extra.targets = [cifar_extra.targets[i] for i in extra_indices]
+
+            self.train_data = cifar_train
+            self.val_data = cifar_val
+            self.extra_data = cifar_extra
             self.val_data.transform = self.val_transform
-            self.train_data, self.extra_data = random_split(combined_data, [self.train_size, self.extra_size])
+            self.orig_train_data = self.train_data
 
             self.test_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
             self.predict_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
 
     def train_dataloader(self):
         return DataLoader(self.train_data, batch_size=self.batch_size)
+
+    def train_dataloader_ordered(self):
+        return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False)
 
     def val_dataloader(self):
         return DataLoader(self.val_data, batch_size=self.batch_size)
@@ -77,19 +99,17 @@ class CIFAR10DataModule(LightningDataModule):
     def merge_train_and_extra_data(self):
         self.train_data = ConcatDataset([self.train_data, self.extra_data])
 
-    def augment_train_data(self, knowledge):
-        self.train_data = DistillDatasetWrapper(self.train_data, knowledge)
-
-    def augment_extra_data(self, knowledge):
-        self.extra_data = DistillDatasetWrapper(self.extra_data, knowledge)
-
     @property
     def num_classes(self):
         return 10
 
     @property
-    def labels(self):
-        return np.array(self.predict_data.targets)
+    def train_labels(self):
+        return np.array(self.orig_train_data.targets)
+
+    @property
+    def test_labels(self):
+        return np.array(self.test_data.targets)
 
 
 datasets.register_builder("cifar10", CIFAR10DataModule)

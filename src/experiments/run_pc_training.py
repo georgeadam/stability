@@ -15,6 +15,7 @@ from settings import ROOT_DIR
 from src.data import datasets
 from src.lightning_modules import lightning_modules
 from src.models import models
+from src.utils.logging import log_final_metrics
 from src.utils.save import save_predictions
 
 os.chdir(ROOT_DIR)
@@ -30,11 +31,15 @@ def fit_and_predict_original(args, dataset, logger):
     trainer = create_trainer(args, logger)
     trainer.fit(module, datamodule=dataset)
 
+    train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
+    train_logits = torch.cat(train_logits)
+    train_preds = torch.argmax(train_logits, dim=1).detach().cpu().numpy()
+
     test_logits = trainer.predict(module, dataloaders=dataset.test_dataloader())
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    return model, test_preds
+    return model, train_preds, test_preds
 
 
 def fit_and_predict_pc(args, dataset, original_model, logger):
@@ -46,11 +51,15 @@ def fit_and_predict_pc(args, dataset, original_model, logger):
     trainer = create_trainer(args, logger)
     trainer.fit(module, datamodule=dataset)
 
+    train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
+    train_logits = torch.cat(train_logits)
+    train_preds = torch.argmax(train_logits, dim=1).detach().cpu().numpy()
+
     test_logits = trainer.predict(module, dataloaders=dataset.test_dataloader())
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    return test_preds
+    return train_preds, test_preds
 
 
 def create_model(args, num_classes):
@@ -99,30 +108,18 @@ def main(args: DictConfig):
                                                                         args.pc_module.params.beta,
                                                                         args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_model, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
+    original_model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
 
     # Training on combined data
     dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
-    new_test_preds = fit_and_predict_pc(args, dataset, original_model, wandb_logger)
+    new_train_preds, new_test_preds = fit_and_predict_pc(args, dataset, original_model, wandb_logger)
 
-    # Compute churn
-    labels = dataset.labels
-    overall_churn = (original_test_preds != new_test_preds).astype(float).mean()
-    relevant_churn = ((original_test_preds == labels) & (new_test_preds != original_test_preds)).astype(float).mean()
-
-    # Compute accuracy
-    original_accuracy = (original_test_preds == labels).astype(float).mean()
-    new_accuracy = (new_test_preds == labels).astype(float).mean()
-
-    wandb_logger = WandbLogger(project="stability")
-    wandb_logger.log_metrics({"overall_churn": overall_churn,
-                              "relevant_churn": relevant_churn,
-                              "original_accuracy": original_accuracy,
-                              "new_accuracy": new_accuracy})
+    log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)
 
     # Save predictions
-    save_predictions(original_test_preds, new_test_preds)
+    if args.misc.save_predictions:
+        save_predictions(original_train_preds, original_test_preds, new_train_preds, new_test_preds)
 
 
 if __name__ == "__main__":
