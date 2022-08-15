@@ -1,0 +1,4 @@
+early_stopping:
+    patience: 5
+swa:
+    swa_epoch_start: 5

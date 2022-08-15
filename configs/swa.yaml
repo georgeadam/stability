@@ -1,0 +1,12 @@
+experiment_name: swa
+defaults:
+    - callbacks: swa
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module: standard
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/swa/${misc.seed}
+    output_subdir: .
