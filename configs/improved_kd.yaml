@@ -1,0 +1,13 @@
+experiment_name: improved_kd
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@distill_module: improved_kd
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/improved_kd/${distill_module.params.alpha}/${misc.seed}
+    output_subdir: .

@@ -1,0 +1,5 @@
+name: improved_kd
+params:
+    lr: 0.001
+    alpha: 0.1
+    focal: False
