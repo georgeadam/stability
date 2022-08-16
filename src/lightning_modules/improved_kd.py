@@ -1,3 +1,4 @@
+import copy
 import torch
 import wandb
 from pytorch_lightning import LightningModule
@@ -7,10 +8,14 @@ from .creation import lightning_modules
 
 
 class ImprovedKD(LightningModule):
-    def __init__(self, model, original_model, lr, alpha, focal):
+    def __init__(self, model, original_model, lr, alpha, focal, warm_start):
         super().__init__()
 
-        self.model = model
+        if warm_start:
+            self.model = copy.deepcopy(original_model)
+        else:
+            self.model = model
+
         self.original_model = original_model
         self.lr = lr
         self.alpha = alpha
