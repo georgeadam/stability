@@ -1,5 +1,5 @@
 name: knn
 params:
-    alpha: 0.5
+    alpha: 0.1
     beta: 0.5
     n_neighbors: 10

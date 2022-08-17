@@ -62,11 +62,11 @@ class CIFAR10DataModule(LightningDataModule):
             cifar_val = copy.deepcopy(cifar_full)
 
             cifar_train.data = cifar_train.data[train_indices]
-            cifar_train.targets = np.array(cifar_train.targets)
+            cifar_train.targets = torch.tensor(cifar_train.targets)
             cifar_train.targets = cifar_train.targets[train_indices]
 
             cifar_val.data = cifar_val.data[val_indices]
-            cifar_val.targets = np.array(cifar_val.targets)
+            cifar_val.targets = torch.tensor(cifar_val.targets)
             cifar_val.targets = cifar_val.targets[val_indices]
 
             if self.extra_size == 0:
@@ -112,7 +112,7 @@ class CIFAR10DataModule(LightningDataModule):
 
     def merge_train_and_extra_data(self):
         self.train_data.data = np.concatenate([self.train_data.data, self.extra_data.data])
-        self.train_data.targets = np.concatenate([self.train_data.targets, self.extra_data.targets])
+        self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
 
     @property
     def num_classes(self):

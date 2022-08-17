@@ -82,6 +82,9 @@ class ImprovedKD(LightningModule):
         preds = torch.argmax(logits, dim=1)
         ce_loss = self.ce_loss(logits, y)
         distill_loss = self.distill_loss(probs, old_probs, y)
+
+        if len(y.shape) > 1:
+            y = torch.argmax(y, dim=1)
         acc = accuracy(preds, y)
 
         return preds, ce_loss, distill_loss, acc
@@ -96,6 +99,9 @@ class KDLoss(object):
         loss = torch.sum(loss, dim=1)
 
         old_preds = torch.argmax(old_probs, dim=1)
+
+        if len(y_true.shape) > 1:
+            y_true = torch.argmax(y_true, dim=1)
         correct = (old_preds == y_true)
 
         if self.focal:
