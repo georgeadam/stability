@@ -13,6 +13,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
 from src.data import datasets
+from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
 from src.models import models
 from src.utils.logging import log_final_metrics
@@ -39,7 +40,10 @@ def fit_and_predict_original(args, dataset, logger):
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    return model, train_preds, test_preds
+    extra_logits = trainer.predict(module, dataloaders=dataset.extra_dataloader())
+    extra_logits = torch.cat(extra_logits)
+
+    return model, train_preds, test_preds, train_logits, extra_logits
 
 
 def fit_and_predict_distill(args, dataset, original_model, logger):
@@ -87,6 +91,11 @@ def create_trainer(args, logger):
     return trainer
 
 
+def smooth_labels(dataset, logits, smoother):
+    smoothed_targets = smoother(dataset.targets, logits=logits)
+    dataset.targets = smoothed_targets
+
+
 @hydra.main(config_path=config_path, config_name="improved_kd")
 def main(args: DictConfig):
     logging.info("\n" + OmegaConf.to_yaml(args))
@@ -106,11 +115,17 @@ def main(args: DictConfig):
                                                                   args.model.name,
                                                                   args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
+    original_model, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
+        args, dataset, wandb_logger)
 
-    # Training on combined data
+    # Combine train and extra data
     dataset.merge_train_and_extra_data()
+    # Smooth labels if requested
+    smoother = label_smoothers.create(args.label_smoother.name, **args.label_smoother.params,
+                                      num_classes=dataset.num_classes)
+    smooth_labels(dataset.train_data, torch.cat([original_train_logits, original_extra_logits]), smoother)
     wandb_logger = WandbLogger(project="stability", prefix="combined")
+    # Training on combined data
     new_train_preds, new_test_preds = fit_and_predict_distill(args, dataset, original_model, wandb_logger)
 
     log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)

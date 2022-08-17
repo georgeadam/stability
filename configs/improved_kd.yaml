@@ -2,6 +2,7 @@ experiment_name: improved_kd
 defaults:
     - callbacks: default
     - data: mnist
+    - label_smoother: identity
     - misc: default
     - model: lenet
     - lightning_module@orig_module: standard
