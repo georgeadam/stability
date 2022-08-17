@@ -1,0 +1,13 @@
+experiment_name: reweight
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@reweight_module: reweight
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/reweight/${misc.seed}
+    output_subdir: .
