@@ -2,6 +2,7 @@ import copy
 import os
 from typing import Optional
 
+import torch
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
@@ -45,24 +46,28 @@ class MNISTDataModule(LightningDataModule):
             mnist_val = copy.deepcopy(mnist_full)
 
             mnist_train.data = mnist_train.data[train_indices]
-            mnist_train.targets = [mnist_train.targets[i] for i in train_indices]
+            mnist_train.targets = mnist_train.targets[train_indices]
 
             mnist_val.data = mnist_val.data[val_indices]
-            mnist_val.targets = [mnist_val.targets[i] for i in val_indices]
+            mnist_val.targets = mnist_val.targets[val_indices]
 
-            train_indices, extra_indices = train_test_split(np.arange(len(mnist_train)), test_size=self.extra_size)
+            if self.extra_size == 0:
+                train_indices = np.arange(len(mnist_train))
+                extra_indices = np.array([]).astype(int)
+            else:
+                train_indices, extra_indices = train_test_split(np.arange(len(mnist_train)), test_size=self.extra_size)
             mnist_extra = copy.deepcopy(mnist_train)
 
             mnist_train.data = mnist_train.data[train_indices]
-            mnist_train.targets = [mnist_train.targets[i] for i in train_indices]
+            mnist_train.targets = mnist_train.targets[train_indices]
 
             mnist_extra.data = mnist_extra.data[extra_indices]
-            mnist_extra.targets = [mnist_extra.targets[i] for i in extra_indices]
+            mnist_extra.targets = mnist_extra.targets[extra_indices]
 
             self.train_data = mnist_train
             self.val_data = mnist_val
             self.extra_data = mnist_extra
-            self.orig_train_data = self.train_data
+            self.orig_train_data = copy.deepcopy(self.train_data)
 
             self.test_data = MNIST(self.data_dir, train=False, transform=self.transform)
             self.predict_data = MNIST(self.data_dir, train=False, transform=self.transform)
@@ -82,8 +87,12 @@ class MNISTDataModule(LightningDataModule):
     def predict_dataloader(self):
         return DataLoader(self.predict_data, batch_size=self.batch_size, shuffle=False)
 
+    def extra_dataloader(self):
+        return DataLoader(self.extra_data, batch_size=self.batch_size, shuffle=False)
+
     def merge_train_and_extra_data(self):
-        self.train_data = ConcatDataset([self.train_data, self.extra_data])
+        self.train_data.data = torch.cat([self.train_data.data, self.extra_data.data])
+        self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
 
     @property
     def num_classes(self):

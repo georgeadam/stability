@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 import numpy as np
+import torch
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
 from torch.utils.data import ConcatDataset, DataLoader
@@ -61,25 +62,32 @@ class CIFAR10DataModule(LightningDataModule):
             cifar_val = copy.deepcopy(cifar_full)
 
             cifar_train.data = cifar_train.data[train_indices]
-            cifar_train.targets = [cifar_train.targets[i] for i in train_indices]
+            cifar_train.targets = np.array(cifar_train.targets)
+            cifar_train.targets = cifar_train.targets[train_indices]
 
             cifar_val.data = cifar_val.data[val_indices]
-            cifar_val.targets = [cifar_val.targets[i] for i in val_indices]
+            cifar_val.targets = np.array(cifar_val.targets)
+            cifar_val.targets = cifar_val.targets[val_indices]
 
-            train_indices, extra_indices = train_test_split(np.arange(len(cifar_train)), test_size=self.extra_size)
+            if self.extra_size == 0:
+                train_indices = np.arange(len(cifar_train))
+                extra_indices = np.array([]).astype(int)
+            else:
+                train_indices, extra_indices = train_test_split(np.arange(len(cifar_train)), test_size=self.extra_size)
+
             cifar_extra = copy.deepcopy(cifar_train)
 
             cifar_train.data = cifar_train.data[train_indices]
-            cifar_train.targets = [cifar_train.targets[i] for i in train_indices]
+            cifar_train.targets = cifar_train.targets[train_indices]
 
             cifar_extra.data = cifar_extra.data[extra_indices]
-            cifar_extra.targets = [cifar_extra.targets[i] for i in extra_indices]
+            cifar_extra.targets = cifar_extra.targets[extra_indices]
 
             self.train_data = cifar_train
             self.val_data = cifar_val
             self.extra_data = cifar_extra
             self.val_data.transform = self.val_transform
-            self.orig_train_data = self.train_data
+            self.orig_train_data = copy.deepcopy(self.train_data)
 
             self.test_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
             self.predict_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
@@ -99,8 +107,12 @@ class CIFAR10DataModule(LightningDataModule):
     def predict_dataloader(self):
         return DataLoader(self.predict_data, batch_size=self.batch_size, shuffle=False)
 
+    def extra_dataloader(self):
+        return DataLoader(self.extra_data, batch_size=self.batch_size, shuffle=False)
+
     def merge_train_and_extra_data(self):
-        self.train_data = ConcatDataset([self.train_data, self.extra_data])
+        self.train_data.data = np.concatenate([self.train_data.data, self.extra_data.data])
+        self.train_data.targets = np.concatenate([self.train_data.targets, self.extra_data.targets])
 
     @property
     def num_classes(self):
