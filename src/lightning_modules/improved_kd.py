@@ -8,7 +8,7 @@ from .creation import lightning_modules
 
 
 class ImprovedKD(LightningModule):
-    def __init__(self, model, original_model, lr, alpha, focal, warm_start):
+    def __init__(self, model, original_model, lr, alpha, focal, warm_start, *args, **kwargs):
         super().__init__()
 
         if warm_start:
@@ -19,7 +19,7 @@ class ImprovedKD(LightningModule):
         self.original_model = original_model
         self.lr = lr
         self.alpha = alpha
-        self.ce_loss = torch.nn.CrossEntropyLoss()
+        self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
         self.distill_loss = KDLoss(focal)
 
     def forward(self, batch):
@@ -32,6 +32,10 @@ class ImprovedKD(LightningModule):
 
     def training_step(self, batch, batch_idx):
         _, ce_loss, distill_loss, acc = self._get_preds_loss_accuracy(batch)
+        distill_zero = distill_loss == 0
+        ce_loss[distill_zero] /= (1 - self.alpha)
+        ce_loss = ce_loss.mean()
+        distill_loss = distill_loss.mean()
         total_loss = ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
 
         # Log loss and metric
@@ -48,6 +52,10 @@ class ImprovedKD(LightningModule):
             wandb.define_metric('val_accuracy', summary='max')
 
         preds, ce_loss, distill_loss, acc = self._get_preds_loss_accuracy(batch)
+        distill_zero = distill_loss == 0
+        ce_loss[distill_zero] /= (1 - self.alpha)
+        ce_loss = ce_loss.mean()
+        distill_loss = distill_loss.mean()
         total_loss = ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
 
         # Log loss and metric
@@ -91,12 +99,9 @@ class KDLoss(object):
         correct = (old_preds == y_true)
 
         if self.focal:
-            loss = loss[correct]
+            loss[correct] *= 0
 
-        if (loss > 0).sum() == 0:
-            return torch.zeros_like(loss).sum()
-        else:
-            return loss[loss > 0].mean()
+        return loss
 
 
 lightning_modules.register_builder("improved_kd", ImprovedKD)
