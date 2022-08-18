@@ -7,14 +7,14 @@ from .creation import lightning_modules
 
 
 class Reweight(LightningModule):
-    def __init__(self, model, original_model, lr, pos_weight, neg_weight):
+    def __init__(self, model, original_model, lr, weight, focal):
         super().__init__()
 
         self.model = model
         self.original_model = original_model
         self.lr = lr
-        self.pos_weight = pos_weight
-        self.neg_weight = neg_weight
+        self.weight = weight
+        self.focal = focal
         self.loss = torch.nn.CrossEntropyLoss(reduction='none')
 
     def forward(self, batch):
@@ -60,11 +60,13 @@ class Reweight(LightningModule):
 
         # we have a few cases: flip, both right, new wrong
         original_preds = torch.argmax(self.original_model(x), dim=1)
-        negative_flips = (original_preds == y) & (preds != y)
-        positive_flips = (preds == y) & (original_preds != y)
 
-        loss[negative_flips] *= self.neg_weight
-        loss[positive_flips] *= self.pos_weight
+        if self.focal:
+            negative_flips = (original_preds == y) & (preds != y)
+            loss[negative_flips] *= self.weight
+        else:
+            original_correct = (original_preds == y)
+            loss[original_correct] *= self.weight
 
         loss = loss.mean()
 

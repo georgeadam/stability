@@ -1,5 +1,5 @@
 name: reweight
 params:
     lr: 0.001
-    pos_weight: 1.0
-    neg_weight: 1.0
+    weight: 1.0
+    focal: False
