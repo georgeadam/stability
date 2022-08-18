@@ -1,0 +1,13 @@
+experiment_name: sequential
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@sequential_module: sequential
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/sequential/${misc.seed}
+    output_subdir: .
