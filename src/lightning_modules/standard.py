@@ -16,7 +16,7 @@ class Standard(LightningModule):
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
-        x, y = batch
+        x, y, idx = batch
 
         logits = self.model(x)
 
@@ -49,7 +49,7 @@ class Standard(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def _get_preds_loss_accuracy(self, batch):
-        x, y = batch
+        x, y, idx = batch
         logits = self.model(x)
         preds = torch.argmax(logits, dim=1)
         loss = self.loss(logits, y)

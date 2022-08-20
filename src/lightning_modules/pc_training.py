@@ -19,7 +19,7 @@ class PCTraining(LightningModule):
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
-        x, y = batch
+        x, y, idx = batch
 
         logits = self.model(x)
 
@@ -40,7 +40,7 @@ class PCTraining(LightningModule):
         if self.global_step == 0:
             wandb.define_metric('val_accuracy', summary='max')
 
-        x, y = batch
+        x, y, idx = batch
         logits = self.model(x)
         preds = torch.argmax(logits, dim=1)
         ce_loss = self.ce_loss(logits, y)
@@ -57,7 +57,7 @@ class PCTraining(LightningModule):
         return torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
     def _get_preds_loss_accuracy(self, batch):
-        x, y = batch
+        x, y, idx = batch
         logits = self.model(x)
 
         with torch.no_grad():

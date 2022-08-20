@@ -24,7 +24,7 @@ class ImprovedKD(LightningModule):
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
-        x, y = batch
+        x, y, idx = batch
 
         logits = self.model(x)
 
@@ -71,7 +71,7 @@ class ImprovedKD(LightningModule):
         return torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
     def _get_preds_loss_accuracy(self, batch):
-        x, y = batch
+        x, y, idx = batch
         logits = self.model(x)
         probs = torch.nn.Softmax(dim=1)(logits)
 

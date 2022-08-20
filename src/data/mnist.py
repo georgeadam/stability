@@ -11,6 +11,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 from settings import ROOT_DIR
+from .augmented import AugmentedDataset
 from .creation import datasets
 
 
@@ -45,9 +46,11 @@ class MNISTDataModule(LightningDataModule):
             mnist_train = copy.deepcopy(mnist_full)
             mnist_val = copy.deepcopy(mnist_full)
 
+            mnist_train = AugmentedDataset(mnist_train, train_indices)
             mnist_train.data = mnist_train.data[train_indices]
             mnist_train.targets = mnist_train.targets[train_indices]
 
+            mnist_val = AugmentedDataset(mnist_val, val_indices)
             mnist_val.data = mnist_val.data[val_indices]
             mnist_val.targets = mnist_val.targets[val_indices]
 
@@ -60,17 +63,21 @@ class MNISTDataModule(LightningDataModule):
 
             mnist_train.data = mnist_train.data[train_indices]
             mnist_train.targets = mnist_train.targets[train_indices]
+            mnist_train.indices = mnist_train.indices[train_indices]
 
             mnist_extra.data = mnist_extra.data[extra_indices]
             mnist_extra.targets = mnist_extra.targets[extra_indices]
+            mnist_extra.indices = mnist_extra.indices[extra_indices]
 
             self.train_data = mnist_train
             self.val_data = mnist_val
             self.extra_data = mnist_extra
             self.orig_train_data = copy.deepcopy(self.train_data)
 
-            self.test_data = MNIST(self.data_dir, train=False, transform=self.transform)
-            self.predict_data = MNIST(self.data_dir, train=False, transform=self.transform)
+            test_data = MNIST(self.data_dir, train=False, transform=self.transform)
+            self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)))
+            predict_data = MNIST(self.data_dir, train=False, transform=self.transform)
+            self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)))
 
     def train_dataloader(self):
         return DataLoader(self.train_data, batch_size=self.batch_size)
@@ -93,6 +100,7 @@ class MNISTDataModule(LightningDataModule):
     def merge_train_and_extra_data(self):
         self.train_data.data = torch.cat([self.train_data.data, self.extra_data.data])
         self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
+        self.train_data.indices = np.concatenate([self.train_data.indices, self.extra_data.indices])
 
     @property
     def num_classes(self):
