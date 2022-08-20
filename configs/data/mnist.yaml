@@ -5,3 +5,4 @@ params:
     batch_size: 32
     extra_size: 1000
     data_dir: data/mnist
+    random_state: null

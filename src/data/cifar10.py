@@ -16,7 +16,8 @@ from .creation import datasets
 
 
 class CIFAR10DataModule(LightningDataModule):
-    def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int):
+    def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
+                 random_state: int):
         super().__init__()
 
         self.data_dir = os.path.join(ROOT_DIR, data_dir)
@@ -24,6 +25,7 @@ class CIFAR10DataModule(LightningDataModule):
         self.val_size = val_size
         self.extra_size = extra_size
         self.batch_size = batch_size
+        self.random_state = random_state
         dataset_mean = [0.491, 0.482, 0.447]
         dataset_std = [0.247, 0.243, 0.262]
 
@@ -58,7 +60,8 @@ class CIFAR10DataModule(LightningDataModule):
             all_indices = np.random.choice(np.arange(len(cifar_full)),
                                            size=self.train_size + self.val_size + self.extra_size,
                                            replace=False)
-            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size)
+            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
+                                                          random_state=self.random_state)
             cifar_train = copy.deepcopy(cifar_full)
             cifar_val = copy.deepcopy(cifar_full)
 
@@ -76,7 +79,8 @@ class CIFAR10DataModule(LightningDataModule):
                 train_indices = np.arange(len(cifar_train))
                 extra_indices = np.array([]).astype(int)
             else:
-                train_indices, extra_indices = train_test_split(np.arange(len(cifar_train)), test_size=self.extra_size)
+                train_indices, extra_indices = train_test_split(np.arange(len(cifar_train)), test_size=self.extra_size,
+                                                                random_state=self.random_state)
 
             cifar_extra = copy.deepcopy(cifar_train)
 
