@@ -2,11 +2,11 @@ import copy
 import os
 from typing import Optional
 
-import torch
 import numpy as np
+import torch
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
-from torch.utils.data import ConcatDataset, DataLoader
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
@@ -41,9 +41,17 @@ class MNISTDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if (stage == "fit" or stage is None) and not self.train_data:
             mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
-            all_indices = np.random.choice(np.arange(len(mnist_full)),
-                                           size=self.train_size + self.val_size + self.extra_size,
-                                           replace=False)
+
+            if self.random_state:
+                r = np.random.RandomState(self.random_state)
+                all_indices = r.choice(np.arange(len(mnist_full)),
+                                       size=self.train_size + self.val_size + self.extra_size,
+                                       replace=False)
+            else:
+                all_indices = np.random.choice(np.arange(len(mnist_full)),
+                                               size=self.train_size + self.val_size + self.extra_size,
+                                               replace=False)
+
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
                                                           random_state=self.random_state)
             mnist_train = copy.deepcopy(mnist_full)
