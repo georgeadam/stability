@@ -73,12 +73,12 @@ class CIFAR10DataModule(LightningDataModule):
             cifar_train = copy.deepcopy(cifar_full)
             cifar_val = copy.deepcopy(cifar_full)
 
-            cifar_train = AugmentedDataset(cifar_train, train_indices)
+            cifar_train = AugmentedDataset(cifar_train, train_indices, 0)
             cifar_train.data = cifar_train.data[train_indices]
             cifar_train.targets = torch.tensor(cifar_train.targets)
             cifar_train.targets = cifar_train.targets[train_indices]
 
-            cifar_val = AugmentedDataset(cifar_val, val_indices)
+            cifar_val = AugmentedDataset(cifar_val, val_indices, 0)
             cifar_val.data = cifar_val.data[val_indices]
             cifar_val.targets = torch.tensor(cifar_val.targets)
             cifar_val.targets = cifar_val.targets[val_indices]
@@ -99,6 +99,7 @@ class CIFAR10DataModule(LightningDataModule):
             cifar_extra.data = cifar_extra.data[extra_indices]
             cifar_extra.targets = cifar_extra.targets[extra_indices]
             cifar_extra.indices = cifar_extra.indices[extra_indices]
+            cifar_extra.source = 1
 
             self.train_data = cifar_train
             self.val_data = cifar_val
@@ -107,9 +108,9 @@ class CIFAR10DataModule(LightningDataModule):
             self.orig_train_data = copy.deepcopy(self.train_data)
 
             test_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
-            self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)))
+            self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)), 0)
             predict_data = CIFAR10(self.data_dir, train=False, transform=self.val_transform)
-            self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)))
+            self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
     def train_dataloader(self):
         return DataLoader(self.train_data, batch_size=self.batch_size)

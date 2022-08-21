@@ -2,14 +2,23 @@ from torch.utils.data import Dataset
 
 
 class AugmentedDataset(Dataset):
-    def __init__(self, dataset, indices):
+    def __init__(self, dataset, indices, source):
         super().__init__()
 
         self.dataset = dataset
         self.indices = indices
+        self._source = source
 
     def __len__(self):
         return len(self.dataset)
+
+    @property
+    def source(self):
+        return self._source
+
+    @source.setter
+    def source(self, new_source):
+        self._source = new_source
 
     @property
     def targets(self):
@@ -30,4 +39,4 @@ class AugmentedDataset(Dataset):
     def __getitem__(self, idx):
         x, y = self.dataset.__getitem__(idx)
 
-        return x, y, self.indices[idx]
+        return x, y, self.indices[idx], self.source

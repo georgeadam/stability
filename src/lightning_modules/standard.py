@@ -1,4 +1,4 @@
-import pandas as pd
+import numpy as np
 import torch
 import wandb
 from pytorch_lightning import LightningModule
@@ -8,25 +8,26 @@ from .creation import lightning_modules
 
 
 class Standard(LightningModule):
-    def __init__(self, model, lr):
+    def __init__(self, model, original_model, lr):
         super().__init__()
 
         self.model = model
+        self.original_model = original_model
         self.lr = lr
         self.loss = torch.nn.CrossEntropyLoss()
 
-        self.predictions = pd.DataFrame({"preds": [], "y": [], "correct": [], "epoch": [], "index": []})
+        self.outputs = None
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
-        x, y, idx = batch
+        x, y, idx, source = batch
 
         logits = self.model(x)
 
         return logits
 
     def training_step(self, batch, batch_idx):
-        metrics = self._get_metrics(batch)
+        metrics = self._get_all_metrics(batch)
 
         # Log loss and metric
         self.log('train/loss', metrics["loss"], on_step=False, on_epoch=True)
@@ -36,20 +37,29 @@ class Standard(LightningModule):
         return metrics
 
     def training_epoch_end(self, outputs):
-        stacked_outputs = {k: [] for k in self.predictions.columns}
-        for out in outputs:
-            for k in self.predictions.columns:
-                stacked_outputs[k].append(out[k])
+        names = list(outputs[0].keys())
+        stacked_outputs = {k: [] for k in names}
 
-        stacked_outputs = {k: torch.concat(v) for k, v in stacked_outputs.items()}
-        stacked_outputs = pd.DataFrame(stacked_outputs)
-        self.predictions = pd.concat([self.predictions, stacked_outputs])
+        for out in outputs:
+            for k in names:
+                if isinstance(out[k], torch.Tensor):
+                    if len(out[k].shape) == 0:
+                        stacked_outputs[k].append(out[k].unsqueeze(0).cpu().numpy())
+                    else:
+                        stacked_outputs[k].append(out[k].cpu().numpy())
+                elif isinstance(out[k], float):
+                    stacked_outputs[k].append(np.array([out[k]]))
+                else:
+                    stacked_outputs[k].append(out[k])
+
+        stacked_outputs = {k: np.concatenate(v) for k, v in stacked_outputs.items()}
+        self.outputs = stacked_outputs
 
     def validation_step(self, batch, batch_idx):
         if self.global_step == 0:
             wandb.define_metric('val/accuracy', summary='max')
 
-        metrics = self._get_metrics(batch)
+        metrics = self._get_all_metrics(batch)
 
         # Log loss and metric
         self.log('val/loss', metrics["loss"], on_step=False, on_epoch=True)
@@ -59,22 +69,39 @@ class Standard(LightningModule):
         return metrics
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
-    def _get_metrics(self, batch):
-        x, y, index = batch
+    def _get_all_metrics(self, batch):
+        x, y, index, source = batch
         logits = self.model(x)
-        loss = self.loss(logits, y)
+        loss = self._get_loss(logits, y)
 
         with torch.no_grad():
-            preds = torch.argmax(logits, dim=1)
-            acc = accuracy(preds, y)
-            correct = preds == y
+            stats = self._get_stats(x, index, source, logits, y)
 
-        epoch = torch.tensor([self.current_epoch] * len(preds))
+        stats["loss"] = loss
 
-        return {"preds": preds.cpu(), "y": y.cpu(), "correct": correct.cpu(),
-                "loss": loss, "acc": acc, "index": index.cpu(), "epoch": epoch}
+        return stats
+
+    def _get_loss(self, logits, y):
+        return self.loss(logits, y)
+
+    def _get_stats(self, x, index, source, logits, y):
+        preds = torch.argmax(logits, dim=1)
+        acc = accuracy(preds, y)
+        correct = preds == y
+
+        if self.original_model:
+            original_logits = self.original_model(x)
+            original_preds = torch.argmax(original_logits, dim=1)
+        else:
+            original_preds = preds
+
+        epoch = np.array([self.current_epoch] * len(preds))
+
+        return {"preds": preds.cpu().numpy(), "y": y.cpu().numpy(), "correct": correct.cpu().numpy(),
+                "index": index.cpu().numpy(), "epoch": epoch,
+                "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy()}
 
 
 lightning_modules.register_builder("standard", Standard)

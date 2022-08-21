@@ -57,11 +57,11 @@ class MNISTDataModule(LightningDataModule):
             mnist_train = copy.deepcopy(mnist_full)
             mnist_val = copy.deepcopy(mnist_full)
 
-            mnist_train = AugmentedDataset(mnist_train, train_indices)
+            mnist_train = AugmentedDataset(mnist_train, train_indices, 0)
             mnist_train.data = mnist_train.data[train_indices]
             mnist_train.targets = mnist_train.targets[train_indices]
 
-            mnist_val = AugmentedDataset(mnist_val, val_indices)
+            mnist_val = AugmentedDataset(mnist_val, val_indices, 0)
             mnist_val.data = mnist_val.data[val_indices]
             mnist_val.targets = mnist_val.targets[val_indices]
 
@@ -80,6 +80,7 @@ class MNISTDataModule(LightningDataModule):
             mnist_extra.data = mnist_extra.data[extra_indices]
             mnist_extra.targets = mnist_extra.targets[extra_indices]
             mnist_extra.indices = mnist_extra.indices[extra_indices]
+            mnist_extra.source = 1
 
             self.train_data = mnist_train
             self.val_data = mnist_val
@@ -87,9 +88,9 @@ class MNISTDataModule(LightningDataModule):
             self.orig_train_data = copy.deepcopy(self.train_data)
 
             test_data = MNIST(self.data_dir, train=False, transform=self.transform)
-            self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)))
+            self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)), 0)
             predict_data = MNIST(self.data_dir, train=False, transform=self.transform)
-            self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)))
+            self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
     def train_dataloader(self):
         return DataLoader(self.train_data, batch_size=self.batch_size)
