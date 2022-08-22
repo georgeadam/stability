@@ -1,6 +1,5 @@
-from pytorch_lightning.callbacks import Callback
-
 import pandas as pd
+from pytorch_lightning.callbacks import Callback
 
 
 class PredictionTracker(Callback):
@@ -9,9 +8,8 @@ class PredictionTracker(Callback):
                                          "correct": [], "epoch": [], "index": [], "source": []})
 
     def on_train_epoch_end(self, trainer, pl_module):
-        outputs = pl_module.outputs
+        outputs = pl_module.training_outputs
 
         outputs = {k: outputs[k] for k in self.predictions.keys()}
         outputs = pd.DataFrame(outputs)
         self.predictions = pd.concat([self.predictions, outputs])
-

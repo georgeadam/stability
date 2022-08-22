@@ -16,7 +16,8 @@ class Standard(LightningModule):
         self.lr = lr
         self.loss = torch.nn.CrossEntropyLoss()
 
-        self.outputs = None
+        self.training_outputs = None
+        self.validation_outputs = None
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
@@ -37,6 +38,14 @@ class Standard(LightningModule):
         return metrics
 
     def training_epoch_end(self, outputs):
+        outputs = self._stack_outputs(outputs)
+        self.training_outputs = outputs
+
+    def validation_epoch_end(self, outputs):
+        outputs = self._stack_outputs(outputs)
+        self.validation_outputs = outputs
+
+    def _stack_outputs(self, outputs):
         names = list(outputs[0].keys())
         stacked_outputs = {k: [] for k in names}
 
@@ -53,7 +62,8 @@ class Standard(LightningModule):
                     stacked_outputs[k].append(out[k])
 
         stacked_outputs = {k: np.concatenate(v) for k, v in stacked_outputs.items()}
-        self.outputs = stacked_outputs
+
+        return stacked_outputs
 
     def validation_step(self, batch, batch_idx):
         if self.global_step == 0:
