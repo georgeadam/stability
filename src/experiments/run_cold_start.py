@@ -55,7 +55,6 @@ def fit_and_predict_new(args, dataset, original_model, logger):
     trainer = create_trainer(args, list(callbacks.values()), logger)
 
     trainer.fit(module, datamodule=dataset)
-    logger.log_table("predictions", dataframe=callbacks["prediction_tracker"].predictions)
 
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
     train_logits = torch.cat(train_logits)
