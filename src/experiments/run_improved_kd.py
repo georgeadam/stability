@@ -12,6 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
+from src.callbacks import ChurnTracker
 from src.data import datasets
 from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
@@ -29,7 +30,9 @@ def fit_and_predict_original(args, dataset, logger):
 
     model = create_model(args, dataset.num_classes)
     module = create_module_original(args, model)
-    trainer = create_trainer(args, logger)
+    callbacks = create_callbacks_original(args)
+    trainer = create_trainer(args, list(callbacks.values()), logger)
+
     trainer.fit(module, datamodule=dataset)
 
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
@@ -52,7 +55,9 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
 
     model = create_model(args, dataset.num_classes)
     module = create_module_distill(args, model, original_model)
-    trainer = create_trainer(args, logger)
+    callbacks = create_callbacks_distill(args)
+    trainer = create_trainer(args, list(callbacks.values()), logger)
+
     trainer.fit(module, datamodule=dataset)
 
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
@@ -71,7 +76,7 @@ def create_model(args, num_classes):
 
 
 def create_module_original(args, model):
-    return lightning_modules.create(args.orig_module.name, model=model, **args.orig_module.params)
+    return lightning_modules.create(args.orig_module.name, model=model, original_model=None, **args.orig_module.params)
 
 
 def create_module_distill(args, model, original_model):
@@ -79,16 +84,25 @@ def create_module_distill(args, model, original_model):
                                     **args.distill_module.params)
 
 
-def create_trainer(args, logger):
+def create_trainer(args, callbacks, logger):
     trainer = Trainer(logger=logger,
                       log_every_n_steps=1,
-                      callbacks=[EarlyStopping("val/loss", **args.callbacks.early_stopping)],
+                      callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
                       enable_checkpointing=False,
                       **args.trainer)
 
     return trainer
+
+
+def create_callbacks_original(args):
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping)}
+
+
+def create_callbacks_distill(args):
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "churn_tracker": ChurnTracker()}
 
 
 def smooth_labels(dataset, logits, smoother):
