@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 
@@ -12,6 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
+from src.callbacks import ChurnTracker, PredictionTracker
 from src.data import datasets
 from src.lightning_modules import lightning_modules
 from src.models import models
@@ -26,17 +28,14 @@ def fit_and_predict_original(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = models.create(args.model.name, num_classes=dataset.num_classes, **args.model.params)
-    module = lightning_modules.create(args.lightning_module.name, model=model, **args.lightning_module.params)
-    trainer = Trainer(logger=logger,
-                      log_every_n_steps=1,
-                      gpus=1,
-                      callbacks=[EarlyStopping("val/loss", **args.callbacks.early_stopping)],
-                      deterministic=True,
-                      enable_checkpointing=False,
-                      **args.trainer)
+    model = create_model(args, dataset.num_classes)
+    module = create_module_original(args, model)
+    callbacks = create_callbacks_original(args)
+    trainer = create_trainer(args, list(callbacks.values()), logger)
 
     trainer.fit(module, datamodule=dataset)
+    logger.log_table("predictions", dataframe=callbacks["prediction_tracker"].predictions)
+
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
     train_logits = torch.cat(train_logits)
     train_preds = torch.argmax(train_logits, dim=1).detach().cpu().numpy()
@@ -52,14 +51,9 @@ def fit_and_predict_warm(args, dataset, model, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    module = lightning_modules.create(args.lightning_module.name, model=model, **args.lightning_module.params)
-    trainer = Trainer(logger=logger,
-                      log_every_n_steps=1,
-                      gpus=1,
-                      callbacks=[EarlyStopping("val/loss", **args.callbacks.early_stopping)],
-                      deterministic=True,
-                      enable_checkpointing=False,
-                      **args.trainer)
+    module = create_module_new(args, model, copy.deepcopy(model))
+    callbacks = create_callbacks_new(args)
+    trainer = create_trainer(args, list(callbacks.values()), logger)
 
     trainer.fit(module, datamodule=dataset)
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
@@ -70,7 +64,44 @@ def fit_and_predict_warm(args, dataset, model, logger):
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    return model, train_preds, test_preds
+    return train_preds, test_preds
+
+
+def create_model(args, num_classes):
+    return models.create(args.model.name, num_classes=num_classes, **args.model.params)
+
+
+def create_module_original(args, model):
+    return lightning_modules.create(args.lightning_module.name, model=model, original_model=None,
+                                    **args.lightning_module.params)
+
+
+def create_module_new(args, model, original_model):
+    return lightning_modules.create(args.lightning_module.name, model=model, original_model=original_model,
+                                    **args.lightning_module.params)
+
+
+def create_trainer(args, callbacks, logger):
+    trainer = Trainer(logger=logger,
+                      log_every_n_steps=1,
+                      callbacks=callbacks,
+                      deterministic=True,
+                      gpus=1,
+                      enable_checkpointing=False,
+                      **args.trainer)
+
+    return trainer
+
+
+def create_callbacks_original(args):
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "prediction_tracker": PredictionTracker()}
+
+
+def create_callbacks_new(args):
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "prediction_tracker": PredictionTracker(),
+            "churn_tracker": ChurnTracker()}
 
 
 @hydra.main(config_path=config_path, config_name="warm_start")
@@ -97,7 +128,7 @@ def main(args: DictConfig):
     # Training on combined data
     dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
-    _, new_train_preds, new_test_preds = fit_and_predict_warm(args, dataset, model, wandb_logger)
+    new_train_preds, new_test_preds = fit_and_predict_warm(args, dataset, model, wandb_logger)
 
     log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)
 
