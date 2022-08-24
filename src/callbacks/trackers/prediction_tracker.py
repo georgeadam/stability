@@ -1,6 +1,8 @@
 import pandas as pd
 from pytorch_lightning.callbacks import Callback
 
+from .creation import trackers
+
 
 class PredictionTracker(Callback):
     def __init__(self):
@@ -13,3 +15,6 @@ class PredictionTracker(Callback):
         outputs = {k: outputs[k] for k in self.predictions.keys()}
         outputs = pd.DataFrame(outputs)
         self.predictions = pd.concat([self.predictions, outputs])
+
+
+trackers.register_builder("prediction", PredictionTracker)

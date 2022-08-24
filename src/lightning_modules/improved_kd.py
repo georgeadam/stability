@@ -66,6 +66,9 @@ class ImprovedKD(LightningModule):
         outputs = self._stack_outputs(outputs)
         self.training_outputs = outputs
 
+        self.trainer.train_dataloader.sampler.update()
+        self.trainer.reset_train_dataloader()
+
     def validation_epoch_end(self, outputs):
         outputs = self._stack_outputs(outputs)
         self.validation_outputs = outputs

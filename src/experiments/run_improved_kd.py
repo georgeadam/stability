@@ -12,11 +12,12 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import ChurnTracker
+from src.callbacks import trackers, scorers
 from src.data import datasets
 from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
 from src.models import models
+from src.samplers import samplers
 from src.utils.logging import log_final_metrics
 from src.utils.save import save_predictions
 
@@ -46,7 +47,7 @@ def fit_and_predict_original(args, dataset, logger):
     extra_logits = trainer.predict(module, dataloaders=dataset.extra_dataloader())
     extra_logits = torch.cat(extra_logits)
 
-    return model, train_preds, test_preds, train_logits, extra_logits
+    return model, callbacks, train_preds, test_preds, train_logits, extra_logits
 
 
 def fit_and_predict_distill(args, dataset, original_model, logger):
@@ -57,8 +58,9 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     module = create_module_distill(args, model, original_model)
     callbacks = create_callbacks_distill(args)
     trainer = create_trainer(args, list(callbacks.values()), logger)
-
-    trainer.fit(module, datamodule=dataset)
+    sampler = create_sampler(args, len(dataset.train_data))
+    trainer.fit(module, train_dataloaders=dataset.train_dataloader_curriculum(sampler),
+                val_dataloaders=dataset.val_dataloader())
 
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
     train_logits = torch.cat(train_logits)
@@ -97,12 +99,17 @@ def create_trainer(args, callbacks, logger):
 
 
 def create_callbacks_original(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping)}
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "scorer": scorers.create(args.scorer.name, **args.scorer.params)}
 
 
 def create_callbacks_distill(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "churn_tracker": ChurnTracker()}
+            "churn_tracker": trackers.create("churn")}
+
+
+def create_sampler(args, dataset_size):
+    return samplers.create(args.sampler.name, dataset_size=dataset_size, **args.sampler.params)
 
 
 def smooth_labels(dataset, logits, smoother):
@@ -129,10 +136,11 @@ def main(args: DictConfig):
                                                                   args.model.name,
                                                                   args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_model, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
+    original_model, original_callbacks, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
         args, dataset, wandb_logger)
 
     # Combine train and extra data
+    dataset.sort_samples_by_score(original_callbacks["scorer"])
     dataset.merge_train_and_extra_data()
     # Smooth labels if requested
     smoother = label_smoothers.create(args.label_smoother.name, **args.label_smoother.params,

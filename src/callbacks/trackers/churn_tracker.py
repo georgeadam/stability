@@ -1,6 +1,7 @@
 from pytorch_lightning.callbacks import Callback
 
 from src.utils.metrics import compute_overall_churn, compute_relevant_churn
+from .creation import trackers
 
 
 class ChurnTracker(Callback):
@@ -24,3 +25,6 @@ class ChurnTracker(Callback):
 
         pl_module.log('{}/overall_churn'.format(partition), overall_churn, on_step=False, on_epoch=True)
         pl_module.log('{}/relevant_churn'.format(partition), relevant_churn, on_step=False, on_epoch=True)
+
+
+trackers.register_builder("churn", ChurnTracker)

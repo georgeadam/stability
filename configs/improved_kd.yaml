@@ -1,4 +1,4 @@
-experiment_name: improved_kd
+experiment_name: improved_kd_shuffle
 defaults:
     - callbacks: default
     - data: mnist
@@ -7,6 +7,8 @@ defaults:
     - model: lenet
     - lightning_module@orig_module: standard
     - lightning_module@distill_module: improved_kd
+    - sampler: standard
+    - scorer: standard
     - trainer: default
 hydra:
     run:

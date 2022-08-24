@@ -48,6 +48,7 @@ class CIFAR10DataModule(LightningDataModule):
         self.extra_data = None
         self.test_data = None
         self.predict_data = None
+        self._sampler = None
 
     def prepare_data(self):
         # download
@@ -113,7 +114,10 @@ class CIFAR10DataModule(LightningDataModule):
             self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
     def train_dataloader(self):
-        return DataLoader(self.train_data, batch_size=self.batch_size)
+        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
+
+    def train_dataloader_curriculum(self, sampler):
+        return DataLoader(self.train_data, batch_size=self.batch_size, sampler=sampler)
 
     def train_dataloader_ordered(self):
         return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False)
@@ -134,6 +138,21 @@ class CIFAR10DataModule(LightningDataModule):
         self.train_data.data = np.concatenate([self.train_data.data, self.extra_data.data])
         self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
         self.train_data.indices = np.concatenate([self.train_data.indices, self.extra_data.indices])
+
+    def sort_samples_by_score(self, scorer):
+        indices, scores = scorer.generate_scores()
+
+        if indices is None:
+            return
+
+        sorted_indices = np.argsort(scores)
+        sorted_indices, sorted_scores = indices[sorted_indices], scores[sorted_indices]
+
+        mapping = np.where(sorted_indices.reshape(sorted_indices.size, 1) == self.train_data.indices)[1]
+
+        self.train_data.data = self.train_data.data[mapping]
+        self.train_data.targets = self.train_data.targets[mapping]
+        self.train_data.indices = self.train_data.indices[mapping]
 
     @property
     def num_classes(self):

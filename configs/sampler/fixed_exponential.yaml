@@ -1,0 +1,4 @@
+name: fixed_exponential
+params:
+    start_percentage: 0.04
+    increase_amount: 1.8
