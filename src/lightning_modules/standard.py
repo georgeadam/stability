@@ -98,6 +98,8 @@ class Standard(LightningModule):
 
     def _get_stats(self, x, index, source, logits, y):
         preds = torch.argmax(logits, dim=1)
+        probs = torch.nn.Softmax(dim=1)(logits)
+        probs = probs[torch.arange(len(probs)), preds]
         acc = accuracy(preds, y)
         correct = preds == y
 
@@ -111,7 +113,8 @@ class Standard(LightningModule):
 
         return {"preds": preds.cpu().numpy(), "y": y.cpu().numpy(), "correct": correct.cpu().numpy(),
                 "index": index.cpu().numpy(), "epoch": epoch,
-                "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy()}
+                "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy(),
+                "probs": probs.cpu().numpy()}
 
 
 lightning_modules.register_builder("standard", Standard)
