@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import ChurnTracker
+from src.callbacks import trackers
 from src.data import datasets
 from src.lightning_modules import lightning_modules
 from src.models import models
@@ -98,7 +98,7 @@ def create_callbacks_original(args):
 
 def create_callbacks_distill(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "churn_tracker": ChurnTracker()}
+            "churn_tracker": trackers.create("churn")}
 
 
 @hydra.main(config_path=config_path, config_name="distill")
