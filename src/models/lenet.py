@@ -4,15 +4,20 @@ from .creation import models
 
 
 class LeNet(nn.Module):
-    def __init__(self, num_classes, size):
+    def __init__(self, num_classes, num_channels, height, size):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16 * size, kernel_size=5)
+        if height == 28:
+            in_features = 384
+        else:
+            in_features = 600
+
+        self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=16 * size, kernel_size=5)
         self.conv2 = nn.Conv2d(in_channels=16 * size, out_channels=24 * size, kernel_size=5)
         self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.fc1 = nn.Linear(in_features=384 * size, out_features=128 * size)
+        self.fc1 = nn.Linear(in_features=in_features * size, out_features=128 * size)
         self.fc2 = nn.Linear(in_features=128 * size, out_features=84)
         self.fc3 = nn.Linear(84, num_classes)
 

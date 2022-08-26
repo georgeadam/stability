@@ -120,6 +120,14 @@ class MNISTDataModule(LightningDataModule):
         return 10
 
     @property
+    def num_channels(self):
+        return 3
+
+    @property
+    def height(self):
+        return 28
+
+    @property
     def train_labels(self):
         return np.array(self.orig_train_data.targets)
 

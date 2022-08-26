@@ -27,7 +27,7 @@ def fit_and_predict_original(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.num_classes)
+    model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
     trainer = create_trainer(args, list(callbacks.values()), logger)
@@ -49,7 +49,7 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.num_classes)
+    model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_distill(args, model, original_model)
     callbacks = create_callbacks_distill(args)
     trainer = create_trainer(args, list(callbacks.values()), logger)
@@ -67,8 +67,8 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     return train_preds, test_preds
 
 
-def create_model(args, num_classes):
-    return models.create(args.model.name, num_classes=num_classes, **args.model.params)
+def create_model(args, num_classes, num_channels, height):
+    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height, **args.model.params)
 
 
 def create_module_original(args, model):
@@ -106,7 +106,7 @@ def main(args: DictConfig):
     logging.info("\n" + OmegaConf.to_yaml(args))
     logging.info("Saving to: {}".format(os.getcwd()))
 
-    seed_everything(args.misc.seed)
+    seed_everything(args.misc.seed, workers=True)
     dataset = datasets.create(args.data.name, **args.data.params)
 
     cfg = OmegaConf.to_container(
