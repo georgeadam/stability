@@ -1,0 +1,4 @@
+name: step
+params:
+    final: 1.0
+    switch: 40
