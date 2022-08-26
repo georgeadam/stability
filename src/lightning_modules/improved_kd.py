@@ -6,11 +6,12 @@ import wandb
 from pytorch_lightning import LightningModule
 from torchmetrics.functional import accuracy
 
+from src.annealers import annealers
 from .creation import lightning_modules
 
 
 class ImprovedKD(LightningModule):
-    def __init__(self, model, original_model, lr, alpha, focal, warm_start, *args, **kwargs):
+    def __init__(self, model, original_model, lr, alpha, focal, warm_start, annealer, *args, **kwargs):
         super().__init__()
 
         if warm_start:
@@ -23,6 +24,7 @@ class ImprovedKD(LightningModule):
         self.alpha = alpha
         self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
         self.distill_loss = KDLoss(focal)
+        self.annealer = annealers.create(annealer.name, **annealer.params)
 
         self.training_outputs = None
         self.validation_outputs = None
@@ -122,8 +124,10 @@ class ImprovedKD(LightningModule):
         distill_loss = self.distill_loss(probs, old_probs, y)
         distill_zero = distill_loss == 0
         ce_loss = self.ce_loss(logits, y)
-        ce_loss[distill_zero] /= (1 - self.alpha)
-        loss = ((1 - self.alpha) * ce_loss) + (self.alpha * distill_loss)
+
+        alpha = self.annealer(self.alpha, self.current_epoch, self.trainer.max_epochs)
+        ce_loss[distill_zero] /= (1 - alpha)
+        loss = ((1 - alpha) * ce_loss) + (alpha * distill_loss)
 
         distill_loss = distill_loss.mean()
         ce_loss = ce_loss.mean()
