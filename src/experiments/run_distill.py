@@ -68,7 +68,8 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
 
 
 def create_model(args, num_classes, num_channels, height):
-    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height, **args.model.params)
+    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height,
+                         **args.model.params)
 
 
 def create_module_original(args, model):
@@ -93,7 +94,8 @@ def create_trainer(args, callbacks, logger):
 
 
 def create_callbacks_original(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping)}
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "flip_tracker": trackers.create("flip")}
 
 
 def create_callbacks_distill(args):

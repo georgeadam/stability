@@ -93,7 +93,8 @@ def create_trainer(args, callbacks, logger):
 
 
 def create_callbacks_original(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping)}
+    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+            "flip_tracker": trackers.create("flip")}
 
 
 def create_callbacks_new(args):
