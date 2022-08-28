@@ -165,10 +165,10 @@ class KDLoss(object):
 
         if len(y_true.shape) > 1:
             y_true = torch.argmax(y_true, dim=1)
-        correct = (old_preds == y_true)
+        incorrect = (old_preds != y_true)
 
         if self.focal:
-            loss[correct] *= 0
+            loss[incorrect] *= 0
 
         return loss
 
