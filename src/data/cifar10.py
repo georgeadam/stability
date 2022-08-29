@@ -50,13 +50,17 @@ class CIFAR10DataModule(LightningDataModule):
         self.predict_data = None
         self._sampler = None
 
+        self.prepare_data()
+        self.setup(None)
+
     def prepare_data(self):
         # download
-        CIFAR10(self.data_dir, train=True, download=True)
-        CIFAR10(self.data_dir, train=False, download=True)
+        if not self.train_data:
+            CIFAR10(self.data_dir, train=True, download=True)
+            CIFAR10(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        if (stage == "fit" or stage is None) and not self.train_data:
+        if not self.train_data:
             cifar_full = CIFAR10(self.data_dir, train=True, transform=self.train_transform)
 
             if self.random_state:

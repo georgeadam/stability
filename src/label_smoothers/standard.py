@@ -5,7 +5,7 @@ from .creation import label_smoothers
 
 
 class StandardLabelSmoother:
-    def __init__(self, alpha, num_classes):
+    def __init__(self, alpha, num_classes, **kwargs):
         self.alpha = alpha
         self.num_classes = num_classes
 

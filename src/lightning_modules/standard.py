@@ -100,6 +100,10 @@ class Standard(LightningModule):
         preds = torch.argmax(logits, dim=1)
         probs = torch.nn.Softmax(dim=1)(logits)
         probs = probs[torch.arange(len(probs)), preds]
+
+        if len(y.shape) > 1:
+            y = torch.argmax(y, dim=1)
+
         acc = accuracy(preds, y)
         correct = preds == y
 

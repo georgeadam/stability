@@ -1,0 +1,14 @@
+experiment_name: label_smoothing
+defaults:
+    - label_smoother@base_smoother: standard
+    - label_smoother@new_smoother: standard
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module: standard
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/label_smoothing/${misc.seed}
+    output_subdir: .

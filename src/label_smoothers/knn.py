@@ -6,13 +6,13 @@ from .creation import label_smoothers
 
 
 class KNNLabelSmoother:
-    def __init__(self, alpha, beta, num_classes, n_neighbors=10):
+    def __init__(self, alpha, beta, num_classes, n_neighbors=10, **kwargs):
         self.alpha = alpha
         self.beta = beta
         self.num_classes = num_classes
         self.n_neighbors = n_neighbors
 
-    def __call__(self, y, logits):
+    def __call__(self, y, logits, **kwargs):
         if len(y.shape) == 1:
             expanded_y = one_hot(y, self.num_classes)
         else:

@@ -33,13 +33,17 @@ class MNISTDataModule(LightningDataModule):
         self.test_data = None
         self.predict_data = None
 
+        self.prepare_data()
+        self.setup(None)
+
     def prepare_data(self):
         # download
-        MNIST(self.data_dir, train=True, download=True)
-        MNIST(self.data_dir, train=False, download=True)
+        if not self.train_data:
+            MNIST(self.data_dir, train=True, download=True)
+            MNIST(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        if (stage == "fit" or stage is None) and not self.train_data:
+        if not self.train_data:
             mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
 
             if self.random_state:

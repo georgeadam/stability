@@ -12,12 +12,11 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import trackers, scorers
+from src.callbacks import trackers
 from src.data import datasets
 from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
 from src.models import models
-from src.samplers import samplers
 from src.utils.logging import log_final_metrics
 from src.utils.save import save_predictions
 
@@ -47,20 +46,19 @@ def fit_and_predict_original(args, dataset, logger):
     extra_logits = trainer.predict(module, dataloaders=dataset.extra_dataloader())
     extra_logits = torch.cat(extra_logits)
 
-    return model, callbacks, train_preds, test_preds, train_logits, extra_logits
+    return model, train_preds, test_preds, train_logits, extra_logits
 
 
-def fit_and_predict_distill(args, dataset, original_model, logger):
+def fit_and_predict_new(args, dataset, original_model, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
-    module = create_module_distill(args, model, original_model)
-    callbacks = create_callbacks_distill(args)
+    module = create_module_new(args, model, original_model)
+    callbacks = create_callbacks_new(args)
     trainer = create_trainer(args, list(callbacks.values()), logger)
-    sampler = create_sampler(args, len(dataset.train_data))
-    trainer.fit(module, train_dataloaders=dataset.train_dataloader_curriculum(sampler),
-                val_dataloaders=dataset.val_dataloader())
+
+    trainer.fit(module, datamodule=dataset)
 
     train_logits = trainer.predict(module, dataloaders=dataset.train_dataloader_ordered())
     train_logits = torch.cat(train_logits)
@@ -79,12 +77,13 @@ def create_model(args, num_classes, num_channels, height):
 
 
 def create_module_original(args, model):
-    return lightning_modules.create(args.orig_module.name, model=model, original_model=None, **args.orig_module.params)
+    return lightning_modules.create(args.lightning_module.name, model=model, original_model=None,
+                                    **args.lightning_module.params)
 
 
-def create_module_distill(args, model, original_model):
-    return lightning_modules.create(args.distill_module.name, model=model, original_model=original_model,
-                                    **args.distill_module.params)
+def create_module_new(args, model, original_model):
+    return lightning_modules.create(args.lightning_module.name, model=model, original_model=original_model,
+                                    **args.lightning_module.params)
 
 
 def create_trainer(args, callbacks, logger):
@@ -101,17 +100,12 @@ def create_trainer(args, callbacks, logger):
 
 def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "scorer": scorers.create(args.scorer.name, **args.scorer.params),
             "flip_tracker": trackers.create("flip")}
 
 
-def create_callbacks_distill(args):
+def create_callbacks_new(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "churn_tracker": trackers.create("churn")}
-
-
-def create_sampler(args, dataset_size):
-    return samplers.create(args.sampler.name, dataset_size=dataset_size, **args.sampler.params)
 
 
 def smooth_labels(dataset, logits, smoother):
@@ -119,7 +113,11 @@ def smooth_labels(dataset, logits, smoother):
     dataset.targets = smoothed_targets
 
 
-@hydra.main(config_path=config_path, config_name="improved_kd")
+def reset_labels(modified_dataset, original_dataset):
+    modified_dataset.targets = original_dataset.targets
+
+
+@hydra.main(config_path=config_path, config_name="label_smoothing")
 def main(args: DictConfig):
     logging.info("\n" + OmegaConf.to_yaml(args))
     logging.info("Saving to: {}".format(os.getcwd()))
@@ -134,23 +132,24 @@ def main(args: DictConfig):
     # Initial training
     wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
     wandb_logger = WandbLogger(project="stability", prefix="initial",
-                               name="{}_{}_improved_kd-{}".format(args.data.name,
-                                                                  args.model.name,
-                                                                  args.misc.seed))
+                               name="{}_{}_label_smoothing-{}".format(args.data.name,
+                                                                      args.model.name,
+                                                                      args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_model, original_callbacks, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
+    smoother = label_smoothers.create(args.base_smoother.name, **args.base_smoother.params,
+                                      num_classes=dataset.num_classes)
+    smooth_labels(dataset.train_data, None, smoother)
+    original_model, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
         args, dataset, wandb_logger)
+    reset_labels(dataset.train_data, dataset.orig_train_data)
 
-    # Combine train and extra data
-    dataset.sort_samples_by_score(original_callbacks["scorer"])
+    # Training on combined data
+    wandb_logger = WandbLogger(project="stability", prefix="combined")
     dataset.merge_train_and_extra_data()
-    # Smooth labels if requested
-    smoother = label_smoothers.create(args.label_smoother.name, **args.label_smoother.params,
+    smoother = label_smoothers.create(args.new_smoother.name, **args.new_smoother.params,
                                       num_classes=dataset.num_classes)
     smooth_labels(dataset.train_data, torch.cat([original_train_logits, original_extra_logits]), smoother)
-    wandb_logger = WandbLogger(project="stability", prefix="combined")
-    # Training on combined data
-    new_train_preds, new_test_preds = fit_and_predict_distill(args, dataset, original_model, wandb_logger)
+    new_train_preds, new_test_preds = fit_and_predict_new(args, dataset, original_model, wandb_logger)
 
     log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)
 
