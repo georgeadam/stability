@@ -1,0 +1,5 @@
+name: ogd
+params:
+    lr: 0.001
+    project: True
+    num_samples: 200

@@ -1,0 +1,13 @@
+experiment_name: ogd
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@ogd_module: ogd
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/ogd/${misc.seed}
+    output_subdir: .
