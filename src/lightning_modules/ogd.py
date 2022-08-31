@@ -11,13 +11,13 @@ from .creation import lightning_modules
 
 
 class OGD(LightningModule):
-    def __init__(self, model, original_model, lr, project, num_samples):
+    def __init__(self, model, original_model, lr, projection, num_samples):
         super().__init__()
 
         self.model = model
         self.original_model = original_model
         self.lr = lr
-        self.project = project
+        self.projection = projection
         self.num_samples = num_samples
         self.loss = torch.nn.CrossEntropyLoss()
 
@@ -174,7 +174,11 @@ class OGD(LightningModule):
             pred.backward()
 
             grad_vec = parameters_to_grad_vector(self.get_params_dict())
-            new_basis.append(grad_vec)
+
+            if self.projection == "other_way":
+                new_basis.append(-grad_vec)
+            else:
+                new_basis.append(grad_vec)
 
             if len(new_basis) == self.num_samples:
                 break
@@ -207,13 +211,22 @@ class OGD(LightningModule):
         grad_vec = parameters_to_grad_vector(self.get_params_dict())
 
         optimizer.zero_grad()
-        if self.project:
+        if self.projection == "orthogonal":
             self.update_ogd_basis()
 
             proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
             del self.ogd_basis
             garbage_collection_cuda()
             new_grad_vec = grad_vec - proj_grad_vec
+
+            cur_param -= self.lr * new_grad_vec
+        elif self.projection == "same" or self.projection == "other_way":
+            self.update_ogd_basis()
+
+            proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
+            del self.ogd_basis
+            garbage_collection_cuda()
+            new_grad_vec = proj_grad_vec
 
             cur_param -= self.lr * new_grad_vec
         else:
