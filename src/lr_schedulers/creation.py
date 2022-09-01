@@ -1,3 +1,3 @@
 from src.base.factory import Factory
 
-lightning_modules = Factory()
+lr_schedulers = Factory()

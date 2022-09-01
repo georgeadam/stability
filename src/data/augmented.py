@@ -36,6 +36,14 @@ class AugmentedDataset(Dataset):
     def data(self, new_data):
         self.dataset.data = new_data
 
+    @property
+    def transform(self):
+        return self.dataset.transform
+
+    @transform.setter
+    def transform(self, new_transform):
+        self.dataset.transform = new_transform
+
     def __getitem__(self, idx):
         x, y = self.dataset.__getitem__(idx)
 

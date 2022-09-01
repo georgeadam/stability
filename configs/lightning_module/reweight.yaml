@@ -1,6 +1,8 @@
 name: reweight
+defaults:
+    - optimizer@params.optimizer: adam
+    - lr_scheduler@params.lr_scheduler: constant
 params:
-    lr: 0.001
     weight: 1.0
     focal: False
     normalize: False

@@ -11,15 +11,16 @@ from .creation import lightning_modules
 
 
 class OGD(LightningModule):
-    def __init__(self, model, original_model, lr, projection, num_samples):
+    def __init__(self, model, original_model, optimizer, lr_scheduler, projection, num_samples):
         super().__init__()
 
         self.model = model
         self.original_model = original_model
-        self.lr = lr
         self.projection = projection
         self.num_samples = num_samples
         self.loss = torch.nn.CrossEntropyLoss()
+        self._optimizer = optimizer
+        self._lr_scheduler = lr_scheduler
 
         self.training_outputs = None
         self.validation_outputs = None
@@ -91,7 +92,7 @@ class OGD(LightningModule):
 
     def configure_optimizers(self):
         self.optimizer = torch.optim.SGD(params=self.model.parameters(),
-                                         lr=self.lr,
+                                         lr=self._optimizer.params.lr,
                                          momentum=0,
                                          weight_decay=0)
         return self.optimizer
@@ -219,7 +220,7 @@ class OGD(LightningModule):
             garbage_collection_cuda()
             new_grad_vec = grad_vec - proj_grad_vec
 
-            cur_param -= self.lr * new_grad_vec
+            cur_param -= self._optimizer.params.lr * new_grad_vec
         elif self.projection == "same" or self.projection == "other_way":
             self.update_ogd_basis()
 
@@ -228,9 +229,9 @@ class OGD(LightningModule):
             garbage_collection_cuda()
             new_grad_vec = proj_grad_vec
 
-            cur_param -= self.lr * new_grad_vec
+            cur_param -= self._optimizer.params.lr * new_grad_vec
         else:
-            cur_param -= self.lr * grad_vec
+            cur_param -= self._optimizer.params.lr * grad_vec
 
         vector_to_parameters(cur_param, self.get_params_dict())
 

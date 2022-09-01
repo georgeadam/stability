@@ -4,17 +4,20 @@ import wandb
 from pytorch_lightning import LightningModule
 from torchmetrics.functional import accuracy
 
+from src.lr_schedulers import lr_schedulers
+from src.optimizers import optimizers
 from .creation import lightning_modules
 
 
 class Standard(LightningModule):
-    def __init__(self, model, original_model, lr):
+    def __init__(self, model, original_model, optimizer, lr_scheduler):
         super().__init__()
 
         self.model = model
         self.original_model = original_model
-        self.lr = lr
         self.loss = torch.nn.CrossEntropyLoss()
+        self._optimizer = optimizer
+        self._lr_scheduler = lr_scheduler
 
         self.training_outputs = None
         self.validation_outputs = None
@@ -79,7 +82,11 @@ class Standard(LightningModule):
         return metrics
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        optimizer = optimizers.create(self._optimizer.name, parameters=self.model.parameters(),
+                                      **self._optimizer.params)
+        lr_scheduler = lr_schedulers.create(self._lr_scheduler.name, optimizer=optimizer, **self._lr_scheduler.params)
+
+        return [optimizer], [lr_scheduler]
 
     def _get_all_metrics(self, batch):
         x, y, index, source = batch

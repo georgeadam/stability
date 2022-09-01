@@ -4,22 +4,26 @@ import wandb
 from pytorch_lightning import LightningModule
 from torchmetrics.functional import accuracy
 
+from src.lr_schedulers import lr_schedulers
+from src.optimizers import optimizers
 from .creation import lightning_modules
 
 
 class Distill(LightningModule):
-    def __init__(self, model, original_model, lr, alpha):
+    def __init__(self, model, original_model, optimizer, lr_scheduler, alpha):
         super().__init__()
 
         self.model = model
         self.original_model = original_model
-        self.lr = lr
         self.alpha = alpha
         self.ce_loss = torch.nn.CrossEntropyLoss()
         self.distill_loss = DistillLoss()
+        self._optimizer = optimizer
+        self._lr_scheduler = lr_scheduler
 
         self.training_outputs = None
         self.validation_outputs = None
+
 
     def forward(self, batch):
         # Used only by trainer.predict() to evaluate the model's predictions
@@ -85,7 +89,10 @@ class Distill(LightningModule):
         return stacked_outputs
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        optimizer = optimizers.create(self._optimizer.name, parameters=self.model.parameters(), **self._optimizer.params)
+        lr_scheduler = lr_schedulers.create(self._lr_scheduler.name, optimizer=optimizer, **self._lr_scheduler.params)
+
+        return [optimizer], [lr_scheduler]
 
     def _get_all_metrics(self, batch):
         x, y, index, source = batch
@@ -132,6 +139,7 @@ class Distill(LightningModule):
         return {"preds": preds.cpu().numpy(), "y": y.cpu().numpy(), "correct": correct.cpu().numpy(),
                 "index": index.cpu().numpy(), "epoch": epoch,
                 "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy()}
+
 
 class DistillLoss(object):
     def __init__(self):

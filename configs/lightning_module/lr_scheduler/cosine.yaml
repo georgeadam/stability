@@ -1,0 +1,3 @@
+name: cosine
+params:
+    T_max: 200

@@ -1,8 +1,9 @@
 name: improved_kd
 defaults:
     - annealer@params.annealer: constant
+    - optimizer@params.optimizer: adam
+    - lr_scheduler@params.lr_scheduler: constant
 params:
-    lr: 0.001
     alpha: 0.1
     focal: False
     warm_start: False
