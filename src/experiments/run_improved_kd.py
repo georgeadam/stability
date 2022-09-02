@@ -32,7 +32,7 @@ def fit_and_predict_original(args, dataset, logger):
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
-    trainer = create_trainer(args, list(callbacks.values()), logger)
+    trainer = create_trainer_orig(args, list(callbacks.values()), logger)
 
     trainer.fit(module, datamodule=dataset)
 
@@ -57,7 +57,7 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_distill(args, model, original_model)
     callbacks = create_callbacks_distill(args)
-    trainer = create_trainer(args, list(callbacks.values()), logger)
+    trainer = create_trainer_distill(args, list(callbacks.values()), logger)
     sampler = create_sampler(args, len(dataset.train_data))
     trainer.fit(module, train_dataloaders=dataset.train_dataloader_curriculum(sampler),
                 val_dataloaders=dataset.val_dataloader())
@@ -87,17 +87,28 @@ def create_module_distill(args, model, original_model):
                                     **args.distill_module.params)
 
 
-def create_trainer(args, callbacks, logger):
+def create_trainer_orig(args, callbacks, logger):
     trainer = Trainer(logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
                       enable_checkpointing=False,
-                      **args.trainer)
+                      **args.orig_trainer)
 
     return trainer
 
+
+def create_trainer_distill(args, callbacks, logger):
+    trainer = Trainer(logger=logger,
+                      log_every_n_steps=1,
+                      callbacks=callbacks,
+                      deterministic=True,
+                      gpus=1,
+                      enable_checkpointing=False,
+                      **args.distill_trainer)
+
+    return trainer
 
 def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),

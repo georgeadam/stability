@@ -6,10 +6,11 @@ from .scorer import Scorer
 
 
 class FlipScorer(Scorer):
-    def __init__(self):
+    def __init__(self, order, **kwargs):
         self.predictions = pd.DataFrame({"preds": [], "y": [],
                                          "correct": [], "epoch": [], "index": []})
         self.predictions = self.predictions.astype(int)
+        self.order = order
 
     def on_train_epoch_end(self, trainer, pl_module):
         outputs = pl_module.training_outputs
@@ -37,7 +38,10 @@ class FlipScorer(Scorer):
 
         flips = np.sum(diff != 0, axis=1)
 
-        return unique_indices, flips
+        if self.order == "anticurriculum":
+            return unique_indices, - flips
+        else:
+            return unique_indices, flips
 
 
 scorers.register_builder("flip", FlipScorer)

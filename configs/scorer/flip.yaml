@@ -1,2 +1,3 @@
 name: flip
-params: {}
+params:
+    order: curriculum

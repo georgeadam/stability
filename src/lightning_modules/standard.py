@@ -106,6 +106,7 @@ class Standard(LightningModule):
     def _get_stats(self, x, index, source, logits, y):
         preds = torch.argmax(logits, dim=1)
         probs = torch.nn.Softmax(dim=1)(logits)
+        probs_gt = probs[torch.arange(len(probs)), y]
         probs = probs[torch.arange(len(probs)), preds]
 
         if len(y.shape) > 1:
@@ -125,7 +126,7 @@ class Standard(LightningModule):
         return {"preds": preds.cpu().numpy(), "y": y.cpu().numpy(), "correct": correct.cpu().numpy(),
                 "index": index.cpu().numpy(), "epoch": epoch,
                 "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy(),
-                "probs": probs.cpu().numpy()}
+                "probs": probs.cpu().numpy(), "probs_gt": probs_gt.cpu().numpy()}
 
 
 lightning_modules.register_builder("standard", Standard)

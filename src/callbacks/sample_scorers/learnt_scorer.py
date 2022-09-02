@@ -6,10 +6,11 @@ from .scorer import Scorer
 
 
 class LearntScorer(Scorer):
-    def __init__(self):
+    def __init__(self, order, **kwargs):
         self.predictions = pd.DataFrame({"preds": [], "y": [],
                                          "correct": [], "epoch": [], "index": []})
         self.predictions = self.predictions.astype(int)
+        self.order = order
 
     def on_train_epoch_end(self, trainer, pl_module):
         outputs = pl_module.training_outputs
@@ -33,7 +34,10 @@ class LearntScorer(Scorer):
 
         combined = pd.concat([learnt, not_learnt])
 
-        return np.array(combined.index), combined.values
+        if self.order == "anticurriculum":
+            return np.array(combined.index), - combined.values
+        else:
+            return np.array(combined.index), combined.values
 
 
 scorers.register_builder("learnt", LearntScorer)
