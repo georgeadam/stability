@@ -71,13 +71,13 @@ def create_model(args, num_classes, num_channels, height):
 
 
 def create_module_original(args, model):
-    return lightning_modules.create(args.lightning_module.name, model=model, original_model=None,
-                                    **args.lightning_module.params)
+    return lightning_modules.create(args.orig_module.name, model=model, original_model=None,
+                                    **args.orig_module.params)
 
 
 def create_module_new(args, model, original_model):
-    return lightning_modules.create(args.lightning_module.name, model=model, original_model=original_model,
-                                    **args.lightning_module.params)
+    return lightning_modules.create(args.warm_module.name, model=model, original_model=original_model,
+                                    **args.warm_module.params)
 
 
 def create_trainer(args, callbacks, logger):

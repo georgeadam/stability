@@ -128,7 +128,7 @@ class ImprovedKD(LightningModule):
 
         old_probs = torch.nn.Softmax(dim=1)(old_logits)
 
-        distill_loss = self.distill_loss(probs, old_probs, y)
+        distill_loss = self.distill_loss(logits, old_probs, y)
         distill_zero = distill_loss == 0
         ce_loss = self.ce_loss(logits, y)
 
@@ -163,10 +163,10 @@ class ImprovedKD(LightningModule):
 class KDLoss(object):
     def __init__(self, focal):
         self.focal = focal
+        self.ce = torch.nn.CrossEntropyLoss(reduction="none")
 
-    def __call__(self, probs, old_probs, y_true):
-        loss = old_probs * (- torch.log(probs))
-        loss = torch.sum(loss, dim=1)
+    def __call__(self, logits, old_probs, y_true):
+        loss = self.ce(logits, old_probs)
 
         old_preds = torch.argmax(old_probs, dim=1)
 
