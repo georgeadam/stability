@@ -175,11 +175,7 @@ class OGD(LightningModule):
             pred.backward()
 
             grad_vec = parameters_to_grad_vector(self.get_params_dict())
-
-            if self.projection == "other_way":
-                new_basis.append(-grad_vec)
-            else:
-                new_basis.append(grad_vec)
+            new_basis.append(grad_vec)
 
             if len(new_basis) == self.num_samples:
                 break
@@ -221,7 +217,16 @@ class OGD(LightningModule):
             new_grad_vec = grad_vec - proj_grad_vec
 
             cur_param -= self._optimizer.params.lr * new_grad_vec
-        elif self.projection == "same" or self.projection == "other_way":
+        elif self.projection == "same":
+            self.update_ogd_basis()
+
+            proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
+            del self.ogd_basis
+            garbage_collection_cuda()
+            new_grad_vec = proj_grad_vec
+
+            cur_param -= self._optimizer.params.lr * new_grad_vec
+        elif self.projection == "other_way":
             self.update_ogd_basis()
 
             proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
