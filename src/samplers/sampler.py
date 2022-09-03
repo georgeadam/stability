@@ -10,6 +10,12 @@ class Sampler:
     def indices(self):
         raise NotImplementedError
 
+    @property
+    @abc.abstractmethod
+    def epochs_until_full(self):
+        raise NotImplementedError
+
+
     @abc.abstractmethod
     def update(self):
         raise NotImplementedError

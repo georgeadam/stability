@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import trackers, scorers
+from src.callbacks import trackers, scorers, custom_callbacks
 from src.data import datasets
 from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
@@ -56,9 +56,10 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
 
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_distill(args, model, original_model)
-    callbacks = create_callbacks_distill(args)
-    trainer = create_trainer_distill(args, list(callbacks.values()), logger)
     sampler = create_sampler(args, len(dataset.train_data))
+    callbacks = create_callbacks_distill(args, sampler.epochs_until_full)
+    trainer = create_trainer_distill(args, list(callbacks.values()), logger)
+
     trainer.fit(module, train_dataloaders=dataset.train_dataloader_curriculum(sampler),
                 val_dataloaders=dataset.val_dataloader())
 
@@ -110,14 +111,17 @@ def create_trainer_distill(args, callbacks, logger):
 
     return trainer
 
+
 def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "scorer": scorers.create(args.scorer.name, **args.scorer.params),
             "flip_tracker": trackers.create("flip")}
 
 
-def create_callbacks_distill(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
+def create_callbacks_distill(args, epochs_until_full):
+    return {"early_stopping": custom_callbacks.create("curriculum_early_stopping", monitor="val/loss",
+                                                      epochs_until_full=epochs_until_full,
+                                                      **args.callbacks.early_stopping),
             "churn_tracker": trackers.create("churn")}
 
 

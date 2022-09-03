@@ -1,4 +1,4 @@
-experiment_name: improved_kd_shuffle
+experiment_name: improved_kd
 defaults:
     - callbacks: default
     - data: mnist
@@ -9,7 +9,8 @@ defaults:
     - lightning_module@distill_module: improved_kd
     - sampler: standard
     - scorer: standard
-    - trainer: default
+    - trainer@orig_trainer: default
+    - trainer@distill_trainer: default
 hydra:
     run:
         dir: results/${data.name}/${model.name}/improved_kd/${distill_module.params.alpha}/${misc.seed}

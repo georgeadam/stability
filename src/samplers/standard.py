@@ -13,6 +13,10 @@ class StandardSampler(Sampler, PytorchSampler[int]):
     def indices(self):
         return torch.arange(self.dataset_size)
 
+    @property
+    def epochs_until_full(self):
+        return 0
+
     def update(self, *args):
         pass
 
