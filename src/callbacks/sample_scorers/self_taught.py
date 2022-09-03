@@ -10,7 +10,7 @@ class SelfTaughtScorer(Scorer):
         self.predictions = pd.DataFrame({"preds": [], "y": [], "probs_gt": [],
                                          "correct": [], "epoch": [], "index": []})
         self.predictions = self.predictions.astype(int)
-        self.predictions = self.predictions.astype({"probs": float})
+        self.predictions = self.predictions.astype({"probs_gt": float})
         self.order = order
 
     def on_train_epoch_end(self, trainer, pl_module):
