@@ -3,6 +3,9 @@ from .scorer import Scorer
 
 
 class StandardScorer(Scorer):
+    def __init__(self, **args):
+        pass
+
     def on_train_epoch_end(self, trainer, pl_module):
         pass
 

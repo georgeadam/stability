@@ -102,6 +102,9 @@ class MNISTDataModule(LightningDataModule):
     def train_dataloader_ordered(self):
         return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False)
 
+    def train_dataloader_curriculum(self, sampler):
+        return DataLoader(self.train_data, batch_size=self.batch_size, sampler=sampler)
+
     def val_dataloader(self):
         return DataLoader(self.val_data, batch_size=self.batch_size)
 
@@ -119,13 +122,28 @@ class MNISTDataModule(LightningDataModule):
         self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
         self.train_data.indices = np.concatenate([self.train_data.indices, self.extra_data.indices])
 
+    def sort_samples_by_score(self, scorer):
+        indices, scores = scorer.generate_scores()
+
+        if indices is None:
+            return
+
+        sorted_indices = np.argsort(scores)
+        sorted_indices, sorted_scores = indices[sorted_indices], scores[sorted_indices]
+
+        mapping = np.where(sorted_indices.reshape(sorted_indices.size, 1) == self.train_data.indices)[1]
+
+        self.train_data.data = self.train_data.data[mapping]
+        self.train_data.targets = self.train_data.targets[mapping]
+        self.train_data.indices = self.train_data.indices[mapping]
+
     @property
     def num_classes(self):
         return 10
 
     @property
     def num_channels(self):
-        return 3
+        return 1
 
     @property
     def height(self):

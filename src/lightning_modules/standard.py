@@ -106,11 +106,12 @@ class Standard(LightningModule):
     def _get_stats(self, x, index, source, logits, y):
         preds = torch.argmax(logits, dim=1)
         probs = torch.nn.Softmax(dim=1)(logits)
-        probs_gt = probs[torch.arange(len(probs)), y]
-        probs = probs[torch.arange(len(probs)), preds]
 
         if len(y.shape) > 1:
             y = torch.argmax(y, dim=1)
+
+        probs_gt = probs[torch.arange(len(probs)), y]
+        probs = probs[torch.arange(len(probs)), preds]
 
         acc = accuracy(preds, y)
         correct = preds == y

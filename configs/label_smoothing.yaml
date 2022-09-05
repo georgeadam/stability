@@ -6,7 +6,8 @@ defaults:
     - data: mnist
     - misc: default
     - model: lenet
-    - lightning_module: standard
+    - lightning_module@orig_module: standard
+    - lightning_module@new_module: standard
     - trainer: default
 hydra:
     run:
