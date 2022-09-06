@@ -1,33 +1,24 @@
 import copy
-import os
 from typing import Optional
 
 import numpy as np
 import torch
-from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import transforms
 
-from settings import ROOT_DIR
 from .augmented import AugmentedDataset
 from .contrastive import ContrastiveLearningViewGenerator
 from .creation import datasets
+from .data_module import DataModule
 from .transforms.gaussian_blur import GaussianBlur
 
 
-class CIFAR10DataModule(LightningDataModule):
+class CIFAR10DataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
                  random_state: int):
-        super().__init__()
+        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state)
 
-        self.data_dir = os.path.join(ROOT_DIR, data_dir)
-        self.train_size = train_size
-        self.val_size = val_size
-        self.extra_size = extra_size
-        self.batch_size = batch_size
-        self.random_state = random_state
         dataset_mean = [0.491, 0.482, 0.447]
         dataset_std = [0.247, 0.243, 0.262]
 
@@ -46,21 +37,14 @@ class CIFAR10DataModule(LightningDataModule):
         ])
 
         simclr_transform_pipeline = transforms.Compose([transforms.RandomResizedCrop(size=32),
-                                                         transforms.RandomHorizontalFlip(),
-                                                         transforms.RandomApply(
-                                                             [transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
-                                                         transforms.RandomGrayscale(p=0.2),
-                                                         GaussianBlur(kernel_size=int(0.1 * 32)),
-                                                         transforms.ToTensor()])
+                                                        transforms.RandomHorizontalFlip(),
+                                                        transforms.RandomApply(
+                                                            [transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
+                                                        transforms.RandomGrayscale(p=0.2),
+                                                        GaussianBlur(kernel_size=int(0.1 * 32)),
+                                                        transforms.ToTensor()])
 
         self.contrastive_transform = ContrastiveLearningViewGenerator(simclr_transform_pipeline)
-
-        self.train_data = None
-        self.orig_train_data = None
-        self.extra_data = None
-        self.test_data = None
-        self.predict_data = None
-        self._sampler = None
 
         self.prepare_data()
         self.setup(None)
@@ -128,61 +112,10 @@ class CIFAR10DataModule(LightningDataModule):
             predict_data = CIFAR10(self.data_dir, train=False)
             self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
-    def train_dataloader(self):
-        self.train_data.transform = self.supervised_transform
-        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
-
-    def train_dataloader_contrastive(self):
-        self.train_data.transform = self.contrastive_transform
-        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
-
-    def train_dataloader_curriculum(self, sampler):
-        self.train_data.transform = self.supervised_transform
-        return DataLoader(self.train_data, batch_size=self.batch_size, sampler=sampler)
-
-    def train_dataloader_ordered(self):
-        self.orig_train_data.transform = self.supervised_transform
-        return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False)
-
-    def val_dataloader(self):
-        self.val_data.transform = self.tensor_transform
-        return DataLoader(self.val_data, batch_size=self.batch_size)
-
-    def val_dataloader_contrastive(self):
-        self.val_data.transform = self.contrastive_transform
-        return DataLoader(self.val_data, batch_size=self.batch_size)
-
-    def test_dataloader(self):
-        self.test_data.transform = self.tensor_transform
-        return DataLoader(self.test_data, batch_size=self.batch_size, shuffle=False)
-
-    def predict_dataloader(self):
-        self.predict_data.transform = self.tensor_transform
-        return DataLoader(self.predict_data, batch_size=self.batch_size, shuffle=False)
-
-    def extra_dataloader(self):
-        self.extra_data.transform = self.tensor_transform
-        return DataLoader(self.extra_data, batch_size=self.batch_size, shuffle=False)
-
     def merge_train_and_extra_data(self):
         self.train_data.data = np.concatenate([self.train_data.data, self.extra_data.data])
         self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
         self.train_data.indices = np.concatenate([self.train_data.indices, self.extra_data.indices])
-
-    def sort_samples_by_score(self, scorer):
-        indices, scores = scorer.generate_scores()
-
-        if indices is None:
-            return
-
-        sorted_indices = np.argsort(scores)
-        sorted_indices, sorted_scores = indices[sorted_indices], scores[sorted_indices]
-
-        mapping = np.where(sorted_indices.reshape(sorted_indices.size, 1) == self.train_data.indices)[1]
-
-        self.train_data.data = self.train_data.data[mapping]
-        self.train_data.targets = self.train_data.targets[mapping]
-        self.train_data.indices = self.train_data.indices[mapping]
 
     @property
     def num_classes(self):
