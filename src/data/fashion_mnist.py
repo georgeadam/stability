@@ -36,7 +36,7 @@ class FashionMNISTDataModule(DataModule):
         if not self.train_data:
             fashion_mnist_full = FashionMNIST(self.data_dir, train=True)
 
-            if self.random_state:
+            if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
                 all_indices = r.choice(np.arange(len(fashion_mnist_full)),
                                        size=self.train_size + self.val_size + self.extra_size,

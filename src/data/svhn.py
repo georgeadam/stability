@@ -46,7 +46,7 @@ class SVHNDataModule(DataModule):
             svhn_full = SVHN(self.data_dir, split="train")
             svhn_full.targets = svhn_full.labels
 
-            if self.random_state:
+            if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
                 all_indices = r.choice(np.arange(len(svhn_full)),
                                        size=self.train_size + self.val_size + self.extra_size,
