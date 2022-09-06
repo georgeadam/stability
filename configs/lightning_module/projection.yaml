@@ -1,7 +1,7 @@
-name: ogd
+name: projection
 defaults:
-    - optimizer@params.optimizer: adam
+    - optimizer@params.optimizer: sgd
     - lr_scheduler@params.lr_scheduler: constant
 params:
-    projection: orthogonal
+    projection: ogd
     num_samples: 200

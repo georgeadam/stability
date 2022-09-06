@@ -1,11 +1,11 @@
-experiment_name: ogd
+experiment_name: projection
 defaults:
     - callbacks: default
     - data: mnist
     - misc: default
     - model: lenet
     - lightning_module@orig_module: standard
-    - lightning_module@ogd_module: ogd
+    - lightning_module@projection_module: projection
     - trainer: default
 hydra:
     run:

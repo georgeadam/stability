@@ -7,10 +7,11 @@ from torch.nn.utils.convert_parameters import parameters_to_vector, vector_to_pa
 from torchmetrics.functional import accuracy
 from tqdm.auto import tqdm
 
+import quadprog
 from .creation import lightning_modules
 
 
-class OGD(LightningModule):
+class Projection(LightningModule):
     def __init__(self, model, original_model, optimizer, lr_scheduler, projection, num_samples):
         super().__init__()
 
@@ -145,6 +146,7 @@ class OGD(LightningModule):
     def _get_neural_tangents(self):
         new_basis = []
         train_dataset = self.trainer.train_dataloader.dataset.datasets
+
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True)
 
         for i, (x, y, index, source) in tqdm(enumerate(train_dataloader),
@@ -166,15 +168,11 @@ class OGD(LightningModule):
             if orig_pred != y:
                 continue
 
-            out = self.model(x)
-            out = torch.nn.Softmax(dim=1)(out)
-            label = y.item()
-            pred = out[0, label]
+            if self.projection == "ogd":
+                grad_vec = self._get_output_gradient(x, y)
+            elif self.projection == "gem" or self.projection == "agem":
+                grad_vec = self._get_loss_gradient(x, y)
 
-            self.optimizer.zero_grad()
-            pred.backward()
-
-            grad_vec = parameters_to_grad_vector(self.get_params_dict())
             new_basis.append(grad_vec)
 
             if len(new_basis) == self.num_samples:
@@ -184,7 +182,30 @@ class OGD(LightningModule):
         del new_basis
         garbage_collection_cuda()
 
+        if self.projection == "agem":
+            new_basis_tensor = torch.mean(new_basis_tensor.T, dim=0)
+
         return new_basis_tensor.detach()
+
+    def _get_output_gradient(self, x, y):
+        out = self.model(x)
+        out = torch.nn.Softmax(dim=1)(out)
+        label = y.item()
+        pred = out[0, label]
+
+        self.optimizer.zero_grad()
+        pred.backward()
+
+        return parameters_to_grad_vector(self.get_params_dict())
+
+    def _get_loss_gradient(self, x, y):
+        out = self.model(x)
+        loss = torch.nn.CrossEntropyLoss()(out, y)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+
+        return parameters_to_grad_vector(self.get_params_dict())
 
     def to_device(self, tensor):
         if self.trainer.gpus:
@@ -208,31 +229,48 @@ class OGD(LightningModule):
         grad_vec = parameters_to_grad_vector(self.get_params_dict())
 
         optimizer.zero_grad()
-        if self.projection == "orthogonal":
+        if self.projection == "ogd":
             self.update_ogd_basis()
 
-            proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
+            proj_grad_vec = project_vec_onto_subspace(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
             del self.ogd_basis
             garbage_collection_cuda()
             new_grad_vec = grad_vec - proj_grad_vec
 
+            with torch.no_grad():
+                cosine_similarity = torch.dot(grad_vec, new_grad_vec) / (
+                            torch.dot(grad_vec, grad_vec) * torch.dot(new_grad_vec, new_grad_vec))
+
+            print("Cosine Similarity Between Orig and Modified Gradient: {}".format(cosine_similarity))
+
             cur_param -= self._optimizer.params.lr * new_grad_vec
-        elif self.projection == "same":
+        elif self.projection == "gem":
             self.update_ogd_basis()
 
-            proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
+            proj_grad_vec = project_qp(grad_vec, proj_basis=self.ogd_basis)
             del self.ogd_basis
             garbage_collection_cuda()
             new_grad_vec = proj_grad_vec
 
+            with torch.no_grad():
+                cosine_similarity = torch.dot(grad_vec, new_grad_vec) / (torch.dot(grad_vec, grad_vec) * torch.dot(new_grad_vec, new_grad_vec))
+
+            print("Cosine Similarity Between Orig and Modified Gradient: {}".format(cosine_similarity))
+
             cur_param -= self._optimizer.params.lr * new_grad_vec
-        elif self.projection == "other_way":
+        elif self.projection == "agem":
             self.update_ogd_basis()
 
-            proj_grad_vec = project_vec(grad_vec, proj_basis=self.ogd_basis, gpu=self.trainer.gpus)
+            proj_grad_vec = project_vec_onto_vec(grad_vec, self.ogd_basis)
             del self.ogd_basis
             garbage_collection_cuda()
-            new_grad_vec = proj_grad_vec
+            new_grad_vec = grad_vec - proj_grad_vec
+
+            with torch.no_grad():
+                cosine_similarity = torch.dot(grad_vec, new_grad_vec) / (
+                            torch.dot(grad_vec, grad_vec) * torch.dot(new_grad_vec, new_grad_vec))
+
+            print("Cosine Similarity Between Orig and Modified Gradient: {}".format(cosine_similarity))
 
             cur_param -= self._optimizer.params.lr * new_grad_vec
         else:
@@ -250,7 +288,9 @@ class OGD(LightningModule):
 
         # (f) Ortonormalise the whole memorized basis
         self.ogd_basis = new_basis_tensor
-        self.ogd_basis = orthonormalize(self.ogd_basis, gpu=self.trainer.gpus, normalize=True)
+
+        if self.projection == "ogd":
+            self.ogd_basis = orthonormalize(self.ogd_basis, gpu=self.trainer.gpus, normalize=True)
 
     def update_ogd_basis(self):
         device = torch.device("cuda")
@@ -259,7 +299,7 @@ class OGD(LightningModule):
         self._update_mem()
 
 
-lightning_modules.register_builder("ogd", OGD)
+lightning_modules.register_builder("projection", Projection)
 
 
 def count_parameters(model):
@@ -303,7 +343,7 @@ def grad_vector_to_parameters(vec, parameters):
         pointer += num_param
 
 
-def project_vec(vec, proj_basis, gpu):
+def project_vec_onto_subspace(vec, proj_basis, gpu):
     if proj_basis.shape[1] > 0:  # param x basis_size
         dots = torch.matmul(vec, proj_basis)  # basis_size
         # out = torch.matmul(proj_basis, dots)
@@ -312,6 +352,33 @@ def project_vec(vec, proj_basis, gpu):
         return out
     else:
         return torch.zeros_like(vec)
+
+
+def project_vec_onto_vec(vec1, vec2):
+    return (torch.dot(vec1, vec2) / (torch.dot(vec1, vec1) * torch.dot(vec2, vec2))) * vec2
+
+
+def project_qp(gradient, proj_basis, margin=0.5, eps=1e-3):
+    """
+        Solves the GEM dual QP described in the paper given a proposed
+        gradient "gradient", and a memory of task gradients "memories".
+        Overwrites "gradient" with the final projected update.
+        input:  gradient, p-vector
+        input:  memories, (t * p)-vector
+        output: x, p-vector
+    """
+    memories_np = proj_basis.cpu().t().double().numpy()
+    gradient_np = gradient.cpu().contiguous().view(-1).double().numpy()
+    t = memories_np.shape[0]
+    P = np.dot(memories_np, memories_np.transpose())
+    P = 0.5 * (P + P.transpose()) + np.eye(t) * eps
+    q = np.dot(memories_np, gradient_np) * -1
+    G = np.eye(t)
+    h = np.zeros(t) + margin
+    v = quadprog.solve_qp(P, q, G, h)[0]
+    x = np.dot(v, memories_np) + gradient_np
+
+    return torch.from_numpy(x).to(gradient.device).float()
 
 
 def orthonormalize(vectors, gpu, normalize=True, start_idx=0):

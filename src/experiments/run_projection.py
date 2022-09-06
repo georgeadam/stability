@@ -46,12 +46,12 @@ def fit_and_predict_original(args, dataset, logger):
     return model, train_preds, test_preds
 
 
-def fit_and_predict_ogd(args, dataset, model, logger):
+def fit_and_predict_projection(args, dataset, model, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    module = create_module_ogd(args, model, copy.deepcopy(model))
-    callbacks = create_callbacks_new(args)
+    module = create_module_projection(args, model, copy.deepcopy(model))
+    callbacks = create_callbacks_projection(args)
     trainer = create_trainer(args, list(callbacks.values()), logger)
 
     trainer.fit(module, datamodule=dataset)
@@ -76,9 +76,9 @@ def create_module_original(args, model):
                                     **args.orig_module.params)
 
 
-def create_module_ogd(args, model, original_model):
-    return lightning_modules.create(args.ogd_module.name, model=model, original_model=original_model,
-                                    **args.ogd_module.params)
+def create_module_projection(args, model, original_model):
+    return lightning_modules.create(args.projection_module.name, model=model, original_model=original_model,
+                                    **args.projection_module.params)
 
 
 def create_trainer(args, callbacks, logger):
@@ -99,12 +99,12 @@ def create_callbacks_original(args):
             "flip_tracker": trackers.create("flip")}
 
 
-def create_callbacks_new(args):
+def create_callbacks_projection(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "churn_tracker": trackers.create("churn")}
 
 
-@hydra.main(config_path=config_path, config_name="ogd")
+@hydra.main(config_path=config_path, config_name="projection")
 def main(args: DictConfig):
     logging.info("\n" + OmegaConf.to_yaml(args))
     logging.info("Saving to: {}".format(os.getcwd()))
@@ -119,16 +119,16 @@ def main(args: DictConfig):
     # Initial training
     wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
     wandb_logger = WandbLogger(project="stability", prefix="initial",
-                               name="{}_{}_ogd-{}".format(args.data.name,
-                                                          args.model.name,
-                                                          args.misc.seed))
+                               name="{}_{}_projection-{}".format(args.data.name,
+                                                                 args.model.name,
+                                                                 args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
     model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
 
     # Training on combined data
     dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
-    new_train_preds, new_test_preds = fit_and_predict_ogd(args, dataset, model, wandb_logger)
+    new_train_preds, new_test_preds = fit_and_predict_projection(args, dataset, model, wandb_logger)
 
     log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)
 
