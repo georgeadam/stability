@@ -9,6 +9,9 @@ class CurriculumEarlyStopping(EarlyStopping):
 
         self.epochs_until_full = epochs_until_full
 
+    def on_train_epoch_end(self, trainer, pl_module) -> None:
+        pass
+
     def on_validation_end(self, trainer, pl_module):
         # override this to disable early stopping at the end of val loop
         if trainer.current_epoch >= self.epochs_until_full:
