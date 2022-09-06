@@ -1,0 +1,8 @@
+name: fashion_mnist
+params:
+    train_size: 1000
+    val_size: 100
+    batch_size: 32
+    extra_size: 1000
+    data_dir: data/fashion_mnist
+    random_state: null
