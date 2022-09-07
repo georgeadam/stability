@@ -2,7 +2,7 @@ import copy
 from typing import Optional
 
 import numpy as np
-import torch
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from torchvision.datasets import SVHN
 from torchvision.transforms import transforms
@@ -10,18 +10,17 @@ from torchvision.transforms import transforms
 from .augmented import AugmentedDataset
 from .creation import datasets
 from .data_module import DataModule
-
-from PIL import Image
+from .utils import add_label_noise
 
 
 class MySVHN(SVHN):
     def __init__(
-        self,
-        root: str,
-        split: str = "train",
-        transform = None,
-        target_transform = None,
-        download = False,
+            self,
+            root: str,
+            split: str = "train",
+            transform=None,
+            target_transform=None,
+            download=False,
     ) -> None:
         super().__init__(root, split=split, transform=transform, target_transform=target_transform, download=download)
 
@@ -53,8 +52,8 @@ class MySVHN(SVHN):
 
 class SVHNDataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
-                 random_state: int):
-        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state)
+                 random_state: int, noise: float):
+        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state, noise)
 
         dataset_mean = [0.438, 0.444, 0.473]
         dataset_std = [0.198, 0.201, 0.197]
@@ -117,10 +116,12 @@ class SVHNDataModule(DataModule):
 
             svhn_train.data = svhn_train.data[train_indices]
             svhn_train.targets = svhn_train.targets[train_indices]
+            svhn_train.targets = add_label_noise(svhn_train.targets, self.noise)
             svhn_train.indices = svhn_train.indices[train_indices]
 
             svhn_extra.data = svhn_extra.data[extra_indices]
             svhn_extra.targets = svhn_extra.targets[extra_indices]
+            svhn_extra.targets = add_label_noise(svhn_extra.targets, self.noise)
             svhn_extra.indices = svhn_extra.indices[extra_indices]
             svhn_extra.source = 1
 

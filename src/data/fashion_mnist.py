@@ -10,12 +10,13 @@ from torchvision.transforms import transforms
 from .augmented import AugmentedDataset
 from .creation import datasets
 from .data_module import DataModule
+from .utils import add_label_noise
 
 
 class FashionMNISTDataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
-                 random_state: int):
-        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state)
+                 random_state: int, noise: float):
+        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state, noise)
 
         self.supervised_transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))])
@@ -70,10 +71,12 @@ class FashionMNISTDataModule(DataModule):
 
             fashion_mnist_train.data = fashion_mnist_train.data[train_indices]
             fashion_mnist_train.targets = fashion_mnist_train.targets[train_indices]
+            fashion_mnist_train.targets = add_label_noise(fashion_mnist_train.targets, self.noise)
             fashion_mnist_train.indices = fashion_mnist_train.indices[train_indices]
 
             fashion_mnist_extra.data = fashion_mnist_extra.data[extra_indices]
             fashion_mnist_extra.targets = fashion_mnist_extra.targets[extra_indices]
+            fashion_mnist_extra.targets = add_label_noise(fashion_mnist_extra.targets, self.noise)
             fashion_mnist_extra.indices = fashion_mnist_extra.indices[extra_indices]
             fashion_mnist_extra.source = 1
 

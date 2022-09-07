@@ -10,12 +10,13 @@ from torchvision.transforms import transforms
 from .augmented import AugmentedDataset
 from .creation import datasets
 from .data_module import DataModule
+from .utils import add_label_noise
 
 
 class MNISTDataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
-                 random_state: int):
-        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state)
+                 random_state: int, noise: float):
+        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state, noise)
 
         self.supervised_transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -69,10 +70,12 @@ class MNISTDataModule(DataModule):
 
             mnist_train.data = mnist_train.data[train_indices]
             mnist_train.targets = mnist_train.targets[train_indices]
+            mnist_train.targets = add_label_noise(mnist_train.targets, self.noise)
             mnist_train.indices = mnist_train.indices[train_indices]
 
             mnist_extra.data = mnist_extra.data[extra_indices]
             mnist_extra.targets = mnist_extra.targets[extra_indices]
+            mnist_extra.targets = add_label_noise(mnist_extra.targets, self.noise)
             mnist_extra.indices = mnist_extra.indices[extra_indices]
             mnist_extra.source = 1
 

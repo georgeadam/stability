@@ -10,7 +10,7 @@ from settings import ROOT_DIR
 
 class DataModule(LightningDataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
-                 random_state: int):
+                 random_state: int, noise: float):
         super().__init__()
 
         self.data_dir = os.path.join(ROOT_DIR, data_dir)
@@ -19,6 +19,7 @@ class DataModule(LightningDataModule):
         self.extra_size = extra_size
         self.batch_size = batch_size
         self.random_state = random_state
+        self.noise = noise
 
         self.supervised_transform = None
         self.tensor_transform = None

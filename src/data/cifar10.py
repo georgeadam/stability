@@ -12,12 +12,13 @@ from .contrastive import ContrastiveLearningViewGenerator
 from .creation import datasets
 from .data_module import DataModule
 from .transforms.gaussian_blur import GaussianBlur
+from .utils import add_label_noise
 
 
 class CIFAR10DataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
-                 random_state: int):
-        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state)
+                 random_state: int, noise: float):
+        super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state, noise)
 
         dataset_mean = [0.491, 0.482, 0.447]
         dataset_std = [0.247, 0.243, 0.262]
@@ -95,10 +96,12 @@ class CIFAR10DataModule(DataModule):
 
             cifar_train.data = cifar_train.data[train_indices]
             cifar_train.targets = cifar_train.targets[train_indices]
+            cifar_train.targets = add_label_noise(cifar_train.targets, self.noise)
             cifar_train.indices = cifar_train.indices[train_indices]
 
             cifar_extra.data = cifar_extra.data[extra_indices]
             cifar_extra.targets = cifar_extra.targets[extra_indices]
+            cifar_extra.targets = add_label_noise(cifar_extra.targets, self.noise)
             cifar_extra.indices = cifar_extra.indices[extra_indices]
             cifar_extra.source = 1
 
