@@ -11,6 +11,45 @@ from .augmented import AugmentedDataset
 from .creation import datasets
 from .data_module import DataModule
 
+from PIL import Image
+
+
+class MySVHN(SVHN):
+    def __init__(
+        self,
+        root: str,
+        split: str = "train",
+        transform = None,
+        target_transform = None,
+        download = False,
+    ) -> None:
+        super().__init__(root, split=split, transform=transform, target_transform=target_transform, download=download)
+
+        self.targets = self.labels
+        del self.labels
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+        img, target = self.data[index], int(self.targets[index])
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(np.transpose(img, (1, 2, 0)))
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
 
 class SVHNDataModule(DataModule):
     def __init__(self, data_dir: str, train_size: int, val_size: int, extra_size: int, batch_size: int,
@@ -38,13 +77,12 @@ class SVHNDataModule(DataModule):
     def prepare_data(self):
         # download
         if not self.train_data:
-            SVHN(self.data_dir, split="train", download=True)
-            SVHN(self.data_dir, split="test", download=True)
+            MySVHN(self.data_dir, split="train", download=True)
+            MySVHN(self.data_dir, split="test", download=True)
 
     def setup(self, stage: Optional[str] = None):
         if not self.train_data:
-            svhn_full = SVHN(self.data_dir, split="train")
-            svhn_full.targets = svhn_full.labels
+            svhn_full = MySVHN(self.data_dir, split="train")
 
             if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
@@ -91,16 +129,14 @@ class SVHNDataModule(DataModule):
             self.extra_data = svhn_extra
             self.orig_train_data = copy.deepcopy(self.train_data)
 
-            test_data = SVHN(self.data_dir, split="test")
-            test_data.targets = test_data.labels
+            test_data = MySVHN(self.data_dir, split="test")
             self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)), 0)
-            predict_data = SVHN(self.data_dir, split="test")
-            predict_data.targets = predict_data.labels
+            predict_data = MySVHN(self.data_dir, split="test")
             self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
     def merge_train_and_extra_data(self):
-        self.train_data.data = torch.cat([self.train_data.data, self.extra_data.data])
-        self.train_data.targets = torch.cat([self.train_data.targets, self.extra_data.targets])
+        self.train_data.data = np.concatenate([self.train_data.data, self.extra_data.data])
+        self.train_data.targets = np.concatenate([self.train_data.targets, self.extra_data.targets])
         self.train_data.indices = np.concatenate([self.train_data.indices, self.extra_data.indices])
 
     @property
