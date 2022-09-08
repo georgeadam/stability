@@ -5,5 +5,5 @@ defaults:
     - lr_scheduler@params.lr_scheduler: constant
 params:
     alpha: 0.1
-    focal: False
+    focal: all
     warm_start: False
