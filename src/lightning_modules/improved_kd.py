@@ -176,12 +176,21 @@ class KDLoss(object):
         if self.focal == "correct":
             incorrect = (old_preds != y_true)
             loss[incorrect] *= 0
+        elif self.focal == "correct_other":
+            correct = (old_preds == y_true)
+            loss[correct] *= 0
         elif self.focal == "flips":
             old_correct = (old_preds == y_true)
             preds = torch.argmax(logits, dim=1)
             new_incorrect = (preds != y_true)
             flips = (old_correct & new_incorrect)
             loss[flips] *= 0
+        elif self.focal == "flips_other":
+            old_correct = (old_preds == y_true)
+            preds = torch.argmax(logits, dim=1)
+            new_incorrect = (preds != y_true)
+            flips = (old_correct & new_incorrect)
+            loss[~flips] *= 0
 
         return loss
 
