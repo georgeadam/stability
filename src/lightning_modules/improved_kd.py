@@ -13,7 +13,8 @@ from .creation import lightning_modules
 
 
 class ImprovedKD(LightningModule):
-    def __init__(self, model, original_model, optimizer, lr_scheduler, alpha, focal, warm_start, annealer, *args, **kwargs):
+    def __init__(self, model, original_model, optimizer, lr_scheduler, alpha, focal,
+                 warm_start, annealer, eta, *args, **kwargs):
         super().__init__()
 
         if warm_start:
@@ -23,6 +24,7 @@ class ImprovedKD(LightningModule):
 
         self.original_model = original_model
         self.alpha = alpha
+        self.eta = eta
         self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
         self.distill_loss = KDLoss(focal)
         self.annealer = annealers.create(annealer.name, **annealer.params)
@@ -134,6 +136,7 @@ class ImprovedKD(LightningModule):
 
         alpha = self.annealer(self.alpha, self.current_epoch, self.trainer.max_epochs)
         ce_loss[distill_zero] /= (1 - alpha)
+        ce_loss[distill_zero] *= self.eta
         loss = ((1 - alpha) * ce_loss) + (alpha * distill_loss)
 
         distill_loss = distill_loss.mean()

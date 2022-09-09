@@ -6,4 +6,5 @@ defaults:
 params:
     alpha: 0.1
     focal: all
+    eta: 1.0
     warm_start: False
