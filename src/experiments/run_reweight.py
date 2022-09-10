@@ -66,7 +66,8 @@ def fit_and_predict_reweight(args, dataset, original_model, logger):
 
 
 def create_model(args, num_classes, num_channels, height):
-    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height, **args.model.params)
+    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height,
+                         **args.model.params)
 
 
 def create_module_original(args, model):
@@ -114,9 +115,10 @@ def main(args: DictConfig):
     # Initial training
     wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
     wandb_logger = WandbLogger(project="stability", prefix="initial",
-                               name="{}_{}_reweight-{}".format(args.data.name,
-                                                                   args.model.name,
-                                                                   args.misc.seed))
+                               name="{}_{}_{}-{}".format(args.data.name,
+                                                         args.model.name,
+                                                         args.experiment_name,
+                                                         args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
     original_model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
 

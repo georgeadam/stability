@@ -87,9 +87,10 @@ def main(args: DictConfig):
     # Initial training
     wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
     wandb_logger = WandbLogger(project="stability", prefix="initial",
-                               name="{}_{}_prediction_tracking-{}".format(args.data.name,
-                                                                          args.model.name,
-                                                                          args.misc.seed))
+                               name="{}_{}_{}-{}".format(args.data.name,
+                                                         args.model.name,
+                                                         args.experiment_name,
+                                                         args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
     original_model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
 
