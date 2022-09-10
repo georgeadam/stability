@@ -87,7 +87,6 @@ def create_trainer(args, callbacks, logger):
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
-                      enable_checkpointing=False,
                       num_sanity_val_steps=0,
                       **args.trainer)
 

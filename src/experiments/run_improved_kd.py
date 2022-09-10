@@ -94,7 +94,6 @@ def create_trainer_orig(args, callbacks, logger):
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
-                      enable_checkpointing=False,
                       **args.orig_trainer)
 
     return trainer
@@ -106,7 +105,6 @@ def create_trainer_distill(args, callbacks, logger):
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
-                      enable_checkpointing=False,
                       **args.distill_trainer)
 
     return trainer

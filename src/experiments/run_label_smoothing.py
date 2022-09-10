@@ -92,7 +92,6 @@ def create_trainer(args, callbacks, logger):
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
-                      enable_checkpointing=False,
                       **args.trainer)
 
     return trainer
