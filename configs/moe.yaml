@@ -1,0 +1,14 @@
+experiment_name: moe
+defaults:
+    - callbacks: default
+    - combiner: entropy
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@new_module: standard
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/moe/${misc.seed}
+    output_subdir: .
