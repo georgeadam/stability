@@ -63,8 +63,8 @@ def fit_and_predict_new(args, dataset, original_model, logger):
 
     combiner = combiners.create(args.combiner.name, base_model=original_model, new_model=model, dataset=dataset,
                                 **args.combiner.params)
-    with torch.no_grad():
-        test_preds = combiner.predict(dataset.test_dataloader()).cpu().numpy()
+
+    test_preds = combiner.predict(dataset.test_dataloader())
 
     return train_preds, test_preds
 
