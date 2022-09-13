@@ -1,0 +1,19 @@
+experiment_name: two_stage_kd
+defaults:
+    - callbacks: default
+    - data: mnist
+    - label_smoother: identity
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@distill_module: improved_kd
+    - lightning_module@two_stage_module: two_stage_kd
+    - sampler: standard
+    - scorer: standard
+    - trainer@orig_trainer: default
+    - trainer@distill_trainer: default
+    - trainer@two_stage_trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/two_stage_kd/${distill_module.params.alpha}/${misc.seed}
+    output_subdir: .

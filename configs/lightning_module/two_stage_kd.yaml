@@ -1,0 +1,8 @@
+name: two_stage_kd
+defaults:
+    - annealer@params.annealer: constant
+    - optimizer@params.optimizer: adam
+    - lr_scheduler@params.lr_scheduler: constant
+params:
+    alpha: 0.1
+    preference: original
