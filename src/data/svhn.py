@@ -81,53 +81,53 @@ class SVHNDataModule(DataModule):
 
     def setup(self, stage: Optional[str] = None):
         if not self.train_data:
-            svhn_full = MySVHN(self.data_dir, split="train")
+            full_data = MySVHN(self.data_dir, split="train")
 
             if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
-                all_indices = r.choice(np.arange(len(svhn_full)),
+                all_indices = r.choice(np.arange(len(full_data)),
                                        size=self.train_size + self.val_size + self.extra_size,
                                        replace=False)
             else:
-                all_indices = np.random.choice(np.arange(len(svhn_full)),
+                all_indices = np.random.choice(np.arange(len(full_data)),
                                                size=self.train_size + self.val_size + self.extra_size,
                                                replace=False)
 
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
                                                           random_state=self.random_state)
-            svhn_train = copy.deepcopy(svhn_full)
-            svhn_val = copy.deepcopy(svhn_full)
+            train_data = copy.deepcopy(full_data)
+            val_data = copy.deepcopy(full_data)
 
-            svhn_train = AugmentedDataset(svhn_train, train_indices, 0)
-            svhn_train.data = svhn_train.data[train_indices]
-            svhn_train.targets = svhn_train.targets[train_indices]
+            train_data = AugmentedDataset(train_data, train_indices, 0)
+            train_data.data = train_data.data[train_indices]
+            train_data.targets = train_data.targets[train_indices]
 
-            svhn_val = AugmentedDataset(svhn_val, val_indices, 0)
-            svhn_val.data = svhn_val.data[val_indices]
-            svhn_val.targets = svhn_val.targets[val_indices]
+            val_data = AugmentedDataset(val_data, val_indices, 0)
+            val_data.data = val_data.data[val_indices]
+            val_data.targets = val_data.targets[val_indices]
 
             if self.extra_size == 0:
-                train_indices = np.arange(len(svhn_train))
+                train_indices = np.arange(len(train_data))
                 extra_indices = np.array([]).astype(int)
             else:
-                train_indices, extra_indices = train_test_split(np.arange(len(svhn_train)), test_size=self.extra_size,
+                train_indices, extra_indices = train_test_split(np.arange(len(train_data)), test_size=self.extra_size,
                                                                 random_state=self.random_state)
-            svhn_extra = copy.deepcopy(svhn_train)
+            extra_data = copy.deepcopy(train_data)
 
-            svhn_train.data = svhn_train.data[train_indices]
-            svhn_train.targets = svhn_train.targets[train_indices]
-            svhn_train.targets = add_label_noise(svhn_train.targets, self.noise)
-            svhn_train.indices = svhn_train.indices[train_indices]
+            train_data.data = train_data.data[train_indices]
+            train_data.targets = train_data.targets[train_indices]
+            train_data.targets = add_label_noise(train_data.targets, self.noise)
+            train_data.indices = train_data.indices[train_indices]
 
-            svhn_extra.data = svhn_extra.data[extra_indices]
-            svhn_extra.targets = svhn_extra.targets[extra_indices]
-            svhn_extra.targets = add_label_noise(svhn_extra.targets, self.noise)
-            svhn_extra.indices = svhn_extra.indices[extra_indices]
-            svhn_extra.source = 1
+            extra_data.data = extra_data.data[extra_indices]
+            extra_data.targets = extra_data.targets[extra_indices]
+            extra_data.targets = add_label_noise(extra_data.targets, self.noise)
+            extra_data.indices = extra_data.indices[extra_indices]
+            extra_data.source = 1
 
-            self.train_data = svhn_train
-            self.val_data = svhn_val
-            self.extra_data = svhn_extra
+            self.train_data = train_data
+            self.val_data = val_data
+            self.extra_data = extra_data
             self.orig_train_data = copy.deepcopy(self.train_data)
 
             test_data = MySVHN(self.data_dir, split="test")

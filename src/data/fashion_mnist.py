@@ -35,54 +35,54 @@ class FashionMNISTDataModule(DataModule):
 
     def setup(self, stage: Optional[str] = None):
         if not self.train_data:
-            fashion_mnist_full = FashionMNIST(self.data_dir, train=True)
+            full_data = FashionMNIST(self.data_dir, train=True)
 
             if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
-                all_indices = r.choice(np.arange(len(fashion_mnist_full)),
+                all_indices = r.choice(np.arange(len(full_data)),
                                        size=self.train_size + self.val_size + self.extra_size,
                                        replace=False)
             else:
-                all_indices = np.random.choice(np.arange(len(fashion_mnist_full)),
+                all_indices = np.random.choice(np.arange(len(full_data)),
                                                size=self.train_size + self.val_size + self.extra_size,
                                                replace=False)
 
             train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
                                                           random_state=self.random_state)
-            fashion_mnist_train = copy.deepcopy(fashion_mnist_full)
-            fashion_mnist_val = copy.deepcopy(fashion_mnist_full)
+            train_data = copy.deepcopy(full_data)
+            val_data = copy.deepcopy(full_data)
 
-            fashion_mnist_train = AugmentedDataset(fashion_mnist_train, train_indices, 0)
-            fashion_mnist_train.data = fashion_mnist_train.data[train_indices]
-            fashion_mnist_train.targets = fashion_mnist_train.targets[train_indices]
+            train_data = AugmentedDataset(train_data, train_indices, 0)
+            train_data.data = train_data.data[train_indices]
+            train_data.targets = train_data.targets[train_indices]
 
-            fashion_mnist_val = AugmentedDataset(fashion_mnist_val, val_indices, 0)
-            fashion_mnist_val.data = fashion_mnist_val.data[val_indices]
-            fashion_mnist_val.targets = fashion_mnist_val.targets[val_indices]
+            val_data = AugmentedDataset(val_data, val_indices, 0)
+            val_data.data = val_data.data[val_indices]
+            val_data.targets = val_data.targets[val_indices]
 
             if self.extra_size == 0:
-                train_indices = np.arange(len(fashion_mnist_train))
+                train_indices = np.arange(len(train_data))
                 extra_indices = np.array([]).astype(int)
             else:
-                train_indices, extra_indices = train_test_split(np.arange(len(fashion_mnist_train)),
+                train_indices, extra_indices = train_test_split(np.arange(len(train_data)),
                                                                 test_size=self.extra_size,
                                                                 random_state=self.random_state)
-            fashion_mnist_extra = copy.deepcopy(fashion_mnist_train)
+            extra_data = copy.deepcopy(train_data)
 
-            fashion_mnist_train.data = fashion_mnist_train.data[train_indices]
-            fashion_mnist_train.targets = fashion_mnist_train.targets[train_indices]
-            fashion_mnist_train.targets = add_label_noise(fashion_mnist_train.targets, self.noise)
-            fashion_mnist_train.indices = fashion_mnist_train.indices[train_indices]
+            train_data.data = train_data.data[train_indices]
+            train_data.targets = train_data.targets[train_indices]
+            train_data.targets = add_label_noise(train_data.targets, self.noise)
+            train_data.indices = train_data.indices[train_indices]
 
-            fashion_mnist_extra.data = fashion_mnist_extra.data[extra_indices]
-            fashion_mnist_extra.targets = fashion_mnist_extra.targets[extra_indices]
-            fashion_mnist_extra.targets = add_label_noise(fashion_mnist_extra.targets, self.noise)
-            fashion_mnist_extra.indices = fashion_mnist_extra.indices[extra_indices]
-            fashion_mnist_extra.source = 1
+            extra_data.data = extra_data.data[extra_indices]
+            extra_data.targets = extra_data.targets[extra_indices]
+            extra_data.targets = add_label_noise(extra_data.targets, self.noise)
+            extra_data.indices = extra_data.indices[extra_indices]
+            extra_data.source = 1
 
-            self.train_data = fashion_mnist_train
-            self.val_data = fashion_mnist_val
-            self.extra_data = fashion_mnist_extra
+            self.train_data = train_data
+            self.val_data = val_data
+            self.extra_data = extra_data
             self.orig_train_data = copy.deepcopy(self.train_data)
 
             test_data = FashionMNIST(self.data_dir, train=False)
