@@ -1,0 +1,15 @@
+experiment_name: ensemble
+defaults:
+    - callbacks: default
+    - data: mnist
+    - ensembler: majority_vote
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@new_module: standard
+    - trainer: default
+num_models: 3
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/ensemble/${misc.seed}
+    output_subdir: .
