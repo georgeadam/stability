@@ -5,8 +5,10 @@ from .ensembler import Ensembler
 
 
 class Average(Ensembler):
-    def __init__(self, models):
+    def __init__(self, models, output_type):
         super().__init__(models)
+
+        self.output_type = output_type
 
     def predict(self, dataloader):
         all_outs = []
@@ -16,9 +18,13 @@ class Average(Ensembler):
 
                 model_outs = []
                 for model in self.models:
-                    out = model(x)
+                    logits = model(x)
+                    probs = torch.nn.Softmax(dim=1)(logits)
 
-                    model_outs.append(out)
+                    if self.output_type == "logit":
+                        model_outs.append(logits)
+                    elif self.output_type == "prob":
+                        model_outs.append(probs)
 
                 model_outs = torch.stack(model_outs, dim=1)
                 all_outs.append(model_outs)
