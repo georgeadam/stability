@@ -1,3 +1,4 @@
+from .confidence import Confidence
 from .creation import combiners
 from .entropy import Entropy
 from .gradnorm import GradNorm
