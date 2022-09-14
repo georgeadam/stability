@@ -1,0 +1,9 @@
+name: cifar100
+params:
+    train_size: 10000
+    val_size: 1000
+    batch_size: 32
+    extra_size: 10000
+    data_dir: data/cifar100
+    random_state: null
+    noise: 0.0
