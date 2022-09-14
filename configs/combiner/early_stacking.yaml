@@ -1,0 +1,4 @@
+name: early_stacking
+params:
+    preference: base
+    model: lr
