@@ -51,7 +51,7 @@ class GradNorm(Combiner):
         return meta_preds.cpu().numpy()
 
     def _compute_grad_norms(self, probs, model):
-        kl = kl_div(torch.ones_like(probs) / len(probs), probs)
+        kl = kl_div(torch.ones_like(probs) / probs.shape[1], probs)
 
         grads = [torch.autograd.grad(kl[i], model.parameters(), retain_graph=True) for i in range(len(kl))]
         grads = [self._flatten(grad) for grad in grads]
