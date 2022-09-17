@@ -152,14 +152,18 @@ def main(args: DictConfig):
                                                          args.experiment_name,
                                                          args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
+    smoother = label_smoothers.create(args.orig_smoother.name, **args.orig_smoother.params,
+                                      num_classes=dataset.num_classes)
+    smooth_labels(dataset.train_data, None, smoother)
     original_model, original_callbacks, original_train_preds, original_test_preds, original_train_logits, original_extra_logits = fit_and_predict_original(
         args, dataset, wandb_logger)
+    dataset.train_data.targets = dataset.orig_train_data.targets
 
     # Combine train and extra data
     dataset.sort_samples_by_score(original_callbacks["scorer"])
     dataset.merge_train_and_extra_data()
     # Smooth labels if requested
-    smoother = label_smoothers.create(args.label_smoother.name, **args.label_smoother.params,
+    smoother = label_smoothers.create(args.distill_smoother.name, **args.distill_smoother.params,
                                       num_classes=dataset.num_classes)
     smooth_labels(dataset.train_data, torch.cat([original_train_logits, original_extra_logits]), smoother)
     wandb_logger = WandbLogger(project="stability", prefix="combined")
