@@ -3,6 +3,7 @@ from typing import Optional
 
 import numpy as np
 import torch
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from torchvision.datasets import FashionMNIST
 from torchvision.transforms import transforms
@@ -11,6 +12,30 @@ from .augmented import AugmentedDataset
 from .creation import datasets
 from .data_module import DataModule
 from .utils import add_label_noise
+
+
+class MyFashionMNIST(FashionMNIST):
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+        img, target = self.data[index], self.targets[index]
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img.numpy(), mode="L")
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
 
 
 class FashionMNISTDataModule(DataModule):
@@ -30,12 +55,12 @@ class FashionMNISTDataModule(DataModule):
     def prepare_data(self):
         # download
         if not self.train_data:
-            FashionMNIST(self.data_dir, train=True, download=True)
-            FashionMNIST(self.data_dir, train=False, download=True)
+            MyFashionMNIST(self.data_dir, train=True, download=True)
+            MyFashionMNIST(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
         if not self.train_data:
-            full_data = FashionMNIST(self.data_dir, train=True)
+            full_data = MyFashionMNIST(self.data_dir, train=True)
 
             if self.random_state is not None:
                 r = np.random.RandomState(self.random_state)
@@ -85,9 +110,9 @@ class FashionMNISTDataModule(DataModule):
             self.extra_data = extra_data
             self.orig_train_data = copy.deepcopy(self.train_data)
 
-            test_data = FashionMNIST(self.data_dir, train=False)
+            test_data = MyFashionMNIST(self.data_dir, train=False)
             self.test_data = AugmentedDataset(test_data, np.arange(len(test_data)), 0)
-            predict_data = FashionMNIST(self.data_dir, train=False)
+            predict_data = MyFashionMNIST(self.data_dir, train=False)
             self.predict_data = AugmentedDataset(predict_data, np.arange(len(predict_data)), 0)
 
     def merge_train_and_extra_data(self):

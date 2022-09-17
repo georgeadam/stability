@@ -2,6 +2,7 @@ import copy
 from typing import Optional
 
 import numpy as np
+import torch
 from PIL import Image
 from sklearn.model_selection import train_test_split
 from torchvision.datasets import SVHN
@@ -24,7 +25,7 @@ class MySVHN(SVHN):
     ) -> None:
         super().__init__(root, split=split, transform=transform, target_transform=target_transform, download=download)
 
-        self.targets = self.labels
+        self.targets = torch.from_numpy(self.labels)
         del self.labels
 
     def __getitem__(self, index: int):
@@ -35,7 +36,7 @@ class MySVHN(SVHN):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img, target = self.data[index], int(self.targets[index])
+        img, target = self.data[index], self.targets[index]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
