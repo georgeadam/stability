@@ -70,8 +70,13 @@ class CIFAR10DataModule(DataModule):
                                                size=self.train_size + self.val_size + self.extra_size,
                                                replace=False)
 
-            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
-                                                          random_state=self.random_state)
+            if self.val_size == 0:
+                train_indices = all_indices
+                val_indices = np.array([]).astype(int)
+            else:
+                train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
+                                                              random_state=self.random_state)
+
             train_data = copy.deepcopy(full_data)
             val_data = copy.deepcopy(full_data)
 

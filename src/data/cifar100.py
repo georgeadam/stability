@@ -20,8 +20,8 @@ class CIFAR100DataModule(DataModule):
                  random_state: int, noise: float):
         super().__init__(data_dir, train_size, val_size, extra_size, batch_size, random_state, noise)
 
-        dataset_mean = [0.491, 0.482, 0.447]
-        dataset_std = [0.247, 0.243, 0.262]
+        dataset_mean = [0.507, 0.486, 0.441]
+        dataset_std = [0.267, 0.256, 0.276]
 
         normalize = transforms.Normalize(mean=dataset_mean, std=dataset_std)
 
@@ -70,8 +70,13 @@ class CIFAR100DataModule(DataModule):
                                                size=self.train_size + self.val_size + self.extra_size,
                                                replace=False)
 
-            train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
-                                                          random_state=self.random_state)
+            if self.val_size == 0:
+                train_indices = all_indices
+                val_indices = np.array([]).astype(int)
+            else:
+                train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
+                                                              random_state=self.random_state)
+
             train_data = copy.deepcopy(full_data)
             val_data = copy.deepcopy(full_data)
 
