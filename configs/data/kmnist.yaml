@@ -1,0 +1,9 @@
+name: kmnist
+params:
+    train_size: 1000
+    val_size: 100
+    batch_size: 32
+    extra_size: 1000
+    data_dir: data/kmnist
+    random_state: null
+    noise: 0.0

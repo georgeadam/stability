@@ -4,5 +4,6 @@ from .cifar100 import CIFAR100DataModule
 from .creation import datasets
 from .emnist import EMNISTDataModule
 from .fashion_mnist import FashionMNISTDataModule
+from .kmnist import KMNISTDataModule
 from .mnist import MNISTDataModule
 from .svhn import SVHNDataModule
