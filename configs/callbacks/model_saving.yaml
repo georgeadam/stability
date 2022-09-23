@@ -1,0 +1,4 @@
+early_stopping:
+    patience: 5
+model_checkpoint:
+    every_n_epochs: 10

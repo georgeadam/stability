@@ -100,7 +100,7 @@ class SVHNDataModule(DataModule):
             else:
                 train_indices, val_indices = train_test_split(all_indices, test_size=self.val_size,
                                                               random_state=self.random_state)
-            
+
             train_data = copy.deepcopy(full_data)
             val_data = copy.deepcopy(full_data)
 

@@ -1,0 +1,12 @@
+experiment_name: model_saving
+defaults:
+    - callbacks: model_saving
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module: standard
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/model_saving/${misc.seed}
+    output_subdir: .

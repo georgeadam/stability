@@ -54,11 +54,14 @@ class CelebADataModule(DataModule):
         self.supervised_transform = transforms.Compose([
             transforms.CenterCrop((178, 178)),
             transforms.Resize((128, 128)),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
         self.tensor_transform = transforms.Compose([
-            transforms.ToTensor(),
+            transforms.CenterCrop((178, 178)),
+            transforms.Resize((128, 128)),
+            transforms.ToTensor()
         ])
 
         simclr_transform_pipeline = transforms.Compose([transforms.RandomResizedCrop(size=32),
