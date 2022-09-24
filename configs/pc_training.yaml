@@ -5,9 +5,10 @@ defaults:
     - misc: default
     - model: lenet
     - lightning_module@orig_module: standard
-    - lightning_module@pc_module: pc_training
-    - trainer: default
+    - lightning_module@distill_module: pc_training
+    - trainer@orig_trainer: default
+    - trainer@distill_trainer: default
 hydra:
     run:
-        dir: results/${data.name}/${model.name}/pc_training/${pc_module.params.alpha}_${pc_module.params.beta}/${misc.seed}
+        dir: results/${data.name}/${model.name}/pc_training/${distill_module.params.alpha}/${misc.seed}
     output_subdir: .

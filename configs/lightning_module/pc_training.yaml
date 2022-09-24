@@ -1,6 +1,8 @@
 name: pc_training
+defaults:
+    - optimizer@params.optimizer: adam
+    - lr_scheduler@params.lr_scheduler: constant
 params:
-    lr: 0.001
     alpha: 1.0
-    beta: 5.0
+    beta: 0.0
     gamma: 1.0
