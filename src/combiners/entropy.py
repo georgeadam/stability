@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from .combiner import Combiner
@@ -11,6 +12,40 @@ class Entropy(Combiner):
         self._setup()
 
     def predict(self, dataloader):
+        all_base_entropies, all_new_entropies, all_base_preds, all_new_preds = self._get_entropies(dataloader)
+
+        meta_preds = []
+
+        for i in range(len(all_new_preds)):
+            if all_base_entropies[i] < all_new_entropies[i]:
+                meta_preds.append(all_base_preds[i])
+            else:
+                meta_preds.append(all_new_preds[i])
+
+        meta_preds = torch.tensor(meta_preds).cpu().numpy()
+
+        return meta_preds
+
+    def get_choices(self, dataloader):
+        all_base_entropies, all_new_entropies, all_base_preds, all_new_preds = self._get_entropies(dataloader)
+
+        meta_preds = []
+        meta_choices = []
+
+        for i in range(len(all_new_preds)):
+            if all_base_entropies[i] < all_new_entropies[i]:
+                meta_preds.append(all_base_preds[i])
+                meta_choices.append(0)
+            else:
+                meta_preds.append(all_new_preds[i])
+                meta_choices.append(1)
+
+        meta_preds = np.array(meta_preds)
+        meta_choices = np.array(meta_choices)
+
+        return meta_preds, all_base_preds, all_new_preds, meta_choices
+
+    def _get_entropies(self, dataloader):
         all_base_entropies = []
         all_new_entropies = []
 
@@ -32,23 +67,13 @@ class Entropy(Combiner):
                 all_base_preds.append(torch.argmax(base_probs, dim=1))
                 all_new_preds.append(torch.argmax(new_probs, dim=1))
 
-        all_base_entropies = torch.cat(all_base_entropies)
-        all_new_entropies = torch.cat(all_new_entropies)
+        all_base_entropies = torch.cat(all_base_entropies).cpu().numpy()
+        all_new_entropies = torch.cat(all_new_entropies).cpu().numpy()
 
-        all_base_preds = torch.cat(all_base_preds)
-        all_new_preds = torch.cat(all_new_preds)
+        all_base_preds = torch.cat(all_base_preds).cpu().numpy()
+        all_new_preds = torch.cat(all_new_preds).cpu().numpy()
 
-        meta_preds = []
-
-        for i in range(len(all_new_preds)):
-            if all_base_entropies[i] < all_new_entropies[i]:
-                meta_preds.append(all_base_preds[i])
-            else:
-                meta_preds.append(all_new_preds[i])
-
-        meta_preds = torch.tensor(meta_preds)
-
-        return meta_preds.cpu().numpy()
+        return all_base_entropies, all_new_entropies, all_base_preds, all_new_preds
 
     def _setup(self):
         pass

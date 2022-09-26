@@ -1,5 +1,6 @@
 import abc
 
+import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -19,6 +20,34 @@ class Stacking(metaclass=abc.ABCMeta):
         self._setup()
 
     def predict(self, dataloader):
+        all_base_logits, all_new_logits, combined_logits = self._get_logits(dataloader)
+
+        meta_preds = self.stacker.predict(self.normalizer.transform(combined_logits))
+
+        return meta_preds
+
+    def get_choices(self, dataloader):
+        all_base_logits, all_new_logits, combined_logits = self._get_logits(dataloader)
+
+        meta_preds = self.stacker.predict(self.normalizer.transform(combined_logits))
+        base_preds = torch.argmax(all_base_logits, dim=1).cpu().numpy()
+        new_preds = torch.argmax(all_new_logits, dim=1).cpu().numpy()
+
+        meta_choice = []
+
+        for i in range(len(meta_preds)):
+            if meta_preds[i] == base_preds[i]:
+                meta_choice.append(0)
+            elif meta_preds[i] == new_preds[i]:
+                meta_choice.append(1)
+            else:
+                meta_choice.append(2)
+
+        meta_choice = np.array(meta_choice)
+
+        return meta_preds, base_preds, new_preds, meta_choice
+
+    def _get_logits(self, dataloader):
         all_base_logits = []
         all_new_logits = []
 
@@ -34,9 +63,7 @@ class Stacking(metaclass=abc.ABCMeta):
         all_new_logits = torch.cat(all_new_logits)
         combined_logits = torch.cat([all_base_logits, all_new_logits], dim=1)
 
-        meta_preds = self.stacker.predict(self.normalizer.transform(combined_logits))
-
-        return meta_preds
+        return all_base_logits, all_new_logits, combined_logits
 
     def _setup(self):
         self.normalizer = StandardScaler()
