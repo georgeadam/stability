@@ -47,7 +47,7 @@ class Confidence(Combiner):
 
         return meta_preds, all_base_preds, all_new_preds, meta_choices
 
-    def _get_confidences(self, dataloader, base_temperature, new_temperature):
+    def _get_confidences(self, dataloader, base_temperature=1.0, new_temperature=1.0):
         all_base_confidences = []
         all_new_confidences = []
 

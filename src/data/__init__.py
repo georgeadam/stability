@@ -6,4 +6,5 @@ from .emnist import EMNISTDataModule
 from .fashion_mnist import FashionMNISTDataModule
 from .kmnist import KMNISTDataModule
 from .mnist import MNISTDataModule
+from .stl10 import STL10DataModule
 from .svhn import SVHNDataModule
