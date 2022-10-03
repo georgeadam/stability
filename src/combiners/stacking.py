@@ -3,16 +3,18 @@ import abc
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 from .creation import combiners
 
 
 class Stacking(metaclass=abc.ABCMeta):
-    def __init__(self, base_model, new_model, dataset):
+    def __init__(self, base_model, new_model, dataset, stacker_name):
         self.base_model = base_model
         self.new_model = new_model
         self.dataset = dataset
+        self.stacker_name = stacker_name
 
         self.normalizer = None
         self.stacker = None
@@ -67,7 +69,13 @@ class Stacking(metaclass=abc.ABCMeta):
 
     def _setup(self):
         self.normalizer = StandardScaler()
-        self.stacker = LogisticRegression(solver="newton-cg", max_iter=1000000)
+
+        if self.stacker_name == "lr":
+            self.stacker = LogisticRegression(solver="newton-cg", max_iter=1000000)
+        elif self.stacker_name == "gb":
+            self.stacker = GradientBoostingClassifier(n_estimators=50, validation_fraction=0.2)
+        elif self.stacker_name == "rf":
+            self.stacker = RandomForestClassifier(n_estimators=500)
 
         all_base_logits = []
         all_new_logits = []
