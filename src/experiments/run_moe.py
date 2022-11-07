@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import trackers
+from src.callbacks import trackers, custom_callbacks
 from src.combiners import combiners
 from src.data import datasets
 from src.lightning_modules import lightning_modules
@@ -86,7 +86,7 @@ def create_module_new(args, model, original_model):
 
 def create_trainer(args, callbacks, logger):
     trainer = Trainer(logger=logger,
-                      log_every_n_steps=1,
+                      # log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
                       gpus=1,
@@ -97,7 +97,8 @@ def create_trainer(args, callbacks, logger):
 
 def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "flip_tracker": trackers.create("flip")}
+            "flip_tracker": trackers.create("flip"),
+            "progress_bar": custom_callbacks.create("progress_bar", refresh_rate=1, process_position=0)}
 
 
 def create_callbacks_new(args):
