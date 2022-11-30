@@ -1,0 +1,4 @@
+name: embedding_to_logit
+defaults:
+    - mapper@params.mapper_args: linear_regression
+params: {}
