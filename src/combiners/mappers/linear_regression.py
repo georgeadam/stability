@@ -13,7 +13,7 @@ class LinearRegression(MapperInterface):
         self.model.fit(x, y)
 
     def predict(self, x):
-        return torch.tensor(self.model.predict(x))
+        return torch.tensor(self.model.predict(x)).float()
 
     def __call__(self, x):
         return self.predict(x)

@@ -57,5 +57,8 @@ class LeNet(nn.Module):
 
         return x
 
+    def forward_classifier(self, x):
+        return self.fc3(x)
+
 
 models.register_builder("lenet", LeNet)

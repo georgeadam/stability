@@ -22,10 +22,16 @@ def forward_embedding(self, x):
     return x
 
 
+def forward_classifier(self, x):
+    return self.fc(x)
+
+
 ResNet.forward_embedding = forward_embedding
+ResNet.forward_classifier = forward_classifier
 
 
 def resnet18_wrapper(num_channels, height, **kwargs):
     return resnet18(**kwargs)
+
 
 models.register_builder("resnet18", resnet18_wrapper)

@@ -1,0 +1,4 @@
+name: embedding_to_embedding
+defaults:
+    - mapper@params.mapper_args: linear_regression
+params: {}
