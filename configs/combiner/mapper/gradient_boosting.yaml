@@ -1,0 +1,3 @@
+name: gradient_boosting
+params:
+    n_estimators: 100
