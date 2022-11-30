@@ -33,6 +33,14 @@ class EmbeddingToLogit(metaclass=abc.ABCMeta):
 
         return meta_preds
 
+    def predict_frankenstein(self, dataloader):
+        with torch.no_grad():
+            base_probs, new_probs = self._get_probs(dataloader)
+
+        frankenstein_preds = np.argmax(base_probs, axis=1)
+
+        return frankenstein_preds
+
     def _get_probs(self, dataloader):
         all_base_probs = []
         all_new_probs = []
