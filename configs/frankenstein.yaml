@@ -1,0 +1,10 @@
+experiment_name: frankenstein
+experiment_dir: "results/moe_analysis/cifar10/resnet18/_"
+base_checkpoint_path: "stability/1ul8cg2n/checkpoints/epoch=29-step=28140.ckpt"
+new_checkpoint_path: "stability/1ul8cg2n/checkpoints/epoch=39-step=50000.ckpt"
+defaults:
+    - combiner: embedding_to_embedding
+hydra:
+    run:
+        dir: results/frankenstein/${wandb_run:}
+    output_subdir: .
