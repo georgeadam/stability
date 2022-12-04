@@ -45,7 +45,7 @@ class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
         all_base_probs = []
         all_new_probs = []
 
-        self.base_model = self.new_model.to("cuda:0")
+        self.base_model = self.base_model.to("cuda:0")
         self.new_model = self.new_model.to("cuda:0")
 
         for x, _, _, _ in dataloader:
@@ -54,7 +54,7 @@ class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
             new_probs = torch.nn.Softmax(dim=1)(new_out)
             new_embeddings = self.new_model.forward_embedding(x)
 
-            base_embeddings = self.mapper(new_embeddings)
+            base_embeddings = self.mapper(new_embeddings.cpu())
             base_out = self.base_model.forward_classifier(base_embeddings.to(x.device))
             base_probs = torch.nn.Softmax(dim=1)(base_out)
 
@@ -64,7 +64,7 @@ class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
         all_base_probs = torch.cat(all_base_probs).cpu().numpy()
         all_new_probs = torch.cat(all_new_probs).cpu().numpy()
 
-        self.base_model = self.new_model.to("cpu")
+        self.base_model = self.base_model.to("cpu")
         self.new_model = self.new_model.to("cpu")
 
         return all_base_probs, all_new_probs

@@ -45,12 +45,16 @@ class EmbeddingToLogit(metaclass=abc.ABCMeta):
         all_base_probs = []
         all_new_probs = []
 
+        self.base_model = self.base_model.to("cuda:0")
+        self.new_model = self.new_model.to("cuda:0")
+
         for x, _, _, _ in dataloader:
+            x = x.to("cuda:0")
             new_out = self.new_model(x)
             new_probs = torch.nn.Softmax(dim=1)(new_out)
             new_embeddings = self.new_model.forward_embedding(x)
 
-            base_out = self.mapper(new_embeddings)
+            base_out = self.mapper(new_embeddings.cpu())
             base_probs = torch.nn.Softmax(dim=1)(base_out)
 
             all_base_probs.append(base_probs)
@@ -59,38 +63,53 @@ class EmbeddingToLogit(metaclass=abc.ABCMeta):
         all_base_probs = torch.cat(all_base_probs).cpu().numpy()
         all_new_probs = torch.cat(all_new_probs).cpu().numpy()
 
+        self.base_model = self.base_model.to("cpu")
+        self.new_model = self.new_model.to("cpu")
+
         return all_base_probs, all_new_probs
 
     def _extract_new_embeddings(self, dataloader):
         all_embeddings = []
 
+        self.new_model = self.new_model.to("cuda:0")
+
         with torch.no_grad():
             for x, _, _, _ in dataloader:
+                x = x.to("cuda:0")
                 embeddings = self.new_model.forward_embedding(x)
                 all_embeddings.append(embeddings)
 
-        all_embeddings = torch.cat(all_embeddings)
+        all_embeddings = torch.cat(all_embeddings).cpu()
+        self.new_model = self.new_model.to("cpu")
 
         return all_embeddings
 
     def _extract_base_logits(self, dataloader):
         all_logits = []
 
+        self.base_model = self.base_model.to("cuda:0")
+
         with torch.no_grad():
             for x, _, _, _ in dataloader:
+                x = x.to("cuda:0")
                 logits = self.base_model(x)
                 all_logits.append(logits)
 
-        all_logits = torch.cat(all_logits)
+        all_logits = torch.cat(all_logits).cpu()
+        self.base_model = self.base_model.to("cpu")
 
         return all_logits
 
     def _setup(self, mapper_args):
+        print("Extracting Embeddings")
         new_embeddings = self._extract_new_embeddings(self.dataset.val_dataloader())
         base_logits = self._extract_base_logits(self.dataset.val_dataloader())
+        print("Finished Extracting Embeddings")
 
+        print("Fitting Mapper")
         self.mapper = mappers.create(mapper_args.name, **mapper_args.params)
         self.mapper.fit(new_embeddings, base_logits)
+        print("Finished Fitting Mapper")
 
 
 def probs_to_confidence(probs):
