@@ -45,7 +45,11 @@ class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
         all_base_probs = []
         all_new_probs = []
 
+        self.base_model = self.new_model.to("cuda:0")
+        self.new_model = self.new_model.to("cuda:0")
+
         for x, _, _, _ in dataloader:
+            x = x.to("cuda:0")
             new_out = self.new_model(x)
             new_probs = torch.nn.Softmax(dim=1)(new_out)
             new_embeddings = self.new_model.forward_embedding(x)
@@ -60,26 +64,36 @@ class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
         all_base_probs = torch.cat(all_base_probs).cpu().numpy()
         all_new_probs = torch.cat(all_new_probs).cpu().numpy()
 
+        self.base_model = self.new_model.to("cpu")
+        self.new_model = self.new_model.to("cpu")
+
         return all_base_probs, all_new_probs
 
     def _extract_embeddings(self, model, dataloader):
         all_embeddings = []
+        model = model.to("cuda:0")
 
         with torch.no_grad():
             for x, _, _, _ in dataloader:
+                x = x.to("cuda:0")
                 embeddings = model.forward_embedding(x)
                 all_embeddings.append(embeddings)
 
-        all_embeddings = torch.cat(all_embeddings)
+        all_embeddings = torch.cat(all_embeddings).cpu()
+        model = model.to("cpu")
 
         return all_embeddings
 
     def _setup(self, mapper_args):
+        print("Extracting Embeddings")
         new_embeddings = self._extract_embeddings(self.new_model, self.dataset.val_dataloader())
         base_embeddings = self._extract_embeddings(self.base_model, self.dataset.val_dataloader())
+        print("Finished Extracting Embeddings")
 
+        print("Fitting Mapper")
         self.mapper = mappers.create(mapper_args.name, **mapper_args.params)
         self.mapper.fit(new_embeddings, base_embeddings)
+        print("Finished Fitting Mapper")
 
 
 def probs_to_confidence(probs):

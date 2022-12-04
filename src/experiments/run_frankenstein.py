@@ -38,7 +38,7 @@ def remove_prefix(state_dict):
 
 def extract_predictions(dataloader, model):
     module = lightning_modules.create("prediction", model=model)
-    trainer = Trainer(gpus=1, enable_checkpointing=False)
+    trainer = Trainer(gpus=1, enable_checkpointing=False, enable_progress_bar=False)
 
     test_logits = trainer.predict(module, dataloaders=dataloader)
     test_logits = torch.cat(test_logits)
@@ -96,6 +96,7 @@ def main(args: DictConfig):
                                           dataset=dataset,
                                           **args.combiner.params)
 
+    print("Making Meta Preds")
     meta_test_preds = frankenstein_model.predict(dataset.test_dataloader())
     frankenstein_test_preds = frankenstein_model.predict(dataset.test_dataloader())
 
