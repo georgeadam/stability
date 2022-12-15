@@ -98,7 +98,7 @@ def main(args: DictConfig):
 
     print("Making Meta Preds")
     meta_test_preds = frankenstein_model.predict(dataset.test_dataloader())
-    frankenstein_test_preds = frankenstein_model.predict(dataset.test_dataloader())
+    frankenstein_test_preds = frankenstein_model.predict_frankenstein(dataset.test_dataloader())
 
     log_final_metrics_frankenstein(dataset.test_labels, meta_test_preds, frankenstein_test_preds, new_test_preds,
                       original_test_preds)
