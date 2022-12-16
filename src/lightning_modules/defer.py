@@ -12,7 +12,7 @@ class Defer(LightningModule):
         super().__init__()
 
         self.model = model
-        self.loss = torch.nn.BCEWithLogitsLoss()
+        self.loss = torch.nn.BCEWithLogitsLoss(reduction="none")
         self._optimizer = optimizer
         self._lr_scheduler = lr_scheduler
 
@@ -75,7 +75,12 @@ class Defer(LightningModule):
         for c in range(y.shape[1]):
             total_loss += self.loss(logits[:, c], y[:, c])
 
-        return total_loss / logits.shape[1]
+        negative_indices = ((y[:, 0] == 0) | (y[:, 1] == 0))
+        total_loss[negative_indices] *= 5
+
+        total_loss = total_loss.mean()
+
+        return total_loss
 
     def _get_stats(self, x, logits, y):
         probs = torch.nn.Sigmoid()(logits)

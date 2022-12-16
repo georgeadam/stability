@@ -28,7 +28,7 @@ class Defer(metaclass=abc.ABCMeta):
 
     def predict(self, dataloader):
         base_preds = extract_predictions(dataloader, self.base_model)
-        new_preds = extract_predictions(dataloader, self.base_model)
+        new_preds = extract_predictions(dataloader, self.new_model)
         combined_preds = np.stack([base_preds, new_preds], axis=1)
 
         choices = extract_predictions(dataloader, self.defer_model)
