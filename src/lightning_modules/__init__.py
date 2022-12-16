@@ -1,4 +1,5 @@
 from .creation import lightning_modules
+from .defer import Defer
 from .distill import Distill
 from .improved_kd import ImprovedKD
 from .pc_training import PCTraining

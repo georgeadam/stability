@@ -1,0 +1,7 @@
+name: defer
+defaults:
+    - /callbacks@params.callback_args: default
+    - /model@params.model_args: resnet18
+    - /lightning_module@params.module_args: defer
+    - /trainer@params.trainer_args: default
+params: {}

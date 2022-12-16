@@ -54,3 +54,25 @@ def log_final_metrics_frankenstein(test_labels, meta_test_preds, frankenstein_te
                               "test/new_accuracy": new_accuracy,
                               "test/original_accuracy": original_accuracy
                               })
+
+
+def log_final_metrics_defer(base_test_preds, new_test_preds, meta_test_preds, test_labels):
+    base_accuracy = compute_accuracy(base_test_preds, test_labels)
+    new_accuracy = compute_accuracy(new_test_preds, test_labels)
+    meta_accuracy = compute_accuracy(meta_test_preds, test_labels)
+
+    new_overall_churn = compute_overall_churn(base_test_preds, new_test_preds)
+    new_relevant_churn = compute_relevant_churn(base_test_preds, new_test_preds, test_labels)
+
+    meta_overall_churn = compute_overall_churn(base_test_preds, meta_test_preds)
+    meta_relevant_churn = compute_relevant_churn(base_test_preds, meta_test_preds, test_labels)
+
+    wandb_logger = WandbLogger(project="stability")
+    wandb_logger.log_metrics({"test/base_accuracy": base_accuracy,
+                              "test/new_accuracy": new_accuracy,
+                              "test/meta_accuracy": meta_accuracy,
+                              "test/new_overall_churn": new_overall_churn,
+                              "test/new_relevant_churn": new_relevant_churn,
+                              "test/meta_overall_churn": meta_overall_churn,
+                              "test/meta_relevant_churn": meta_relevant_churn
+                              })

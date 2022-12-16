@@ -149,5 +149,9 @@ class EMNISTDataModule(DataModule):
     def test_labels(self):
         return np.array(self.test_data.targets)
 
+    @property
+    def val_labels(self):
+        return np.array(self.val_data.targets)
+
 
 datasets.register_builder("emnist", EMNISTDataModule)
