@@ -10,7 +10,7 @@ from .creation import combiners
 
 
 class Stacking(metaclass=abc.ABCMeta):
-    def __init__(self, base_model, new_model, dataset, stacker_name):
+    def __init__(self, base_model, new_model, dataset, stacker_name, **kwargs):
         self.base_model = base_model
         self.new_model = new_model
         self.dataset = dataset

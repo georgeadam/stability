@@ -6,7 +6,7 @@ from .creation import combiners
 
 
 class Confidence(Combiner):
-    def __init__(self, base_model, new_model, dataset):
+    def __init__(self, base_model, new_model, dataset, **kwargs):
         super().__init__(base_model, new_model, dataset)
 
         self._setup()

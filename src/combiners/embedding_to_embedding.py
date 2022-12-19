@@ -8,7 +8,7 @@ from .creation import combiners
 
 
 class EmbeddingToEmbedding(metaclass=abc.ABCMeta):
-    def __init__(self, base_model, new_model, dataset, mapper_args):
+    def __init__(self, base_model, new_model, dataset, mapper_args, **kwargs):
         self.base_model = base_model
         self.new_model = new_model
         self.dataset = dataset

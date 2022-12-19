@@ -12,6 +12,9 @@ class PredictionTracker(Callback):
                                          "correct": [], "epoch": [], "index": [], "source": []})
 
     def on_train_epoch_end(self, trainer, pl_module):
+        if trainer.state.stage.name == "SANITY_CHECKING":
+            return
+
         outputs = pl_module.training_outputs
 
         outputs = {k: outputs[k] for k in self.training_predictions.keys()}
@@ -19,6 +22,9 @@ class PredictionTracker(Callback):
         self.training_predictions = pd.concat([self.training_predictions, outputs])
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        if trainer.state.stage.name == "SANITY_CHECKING":
+            return
+
         outputs = pl_module.validation_outputs
 
         outputs = {k: outputs[k] for k in self.validation_predictions.keys()}

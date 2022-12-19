@@ -16,7 +16,7 @@ from .creation import combiners
 
 
 class Defer(metaclass=abc.ABCMeta):
-    def __init__(self, base_model, new_model, dataset, callback_args, model_args, module_args, trainer_args):
+    def __init__(self, base_model, new_model, dataset, callback_args, model_args, module_args, trainer_args, **kwargs):
         self.base_model = base_model
         self.new_model = new_model
         self.dataset = dataset

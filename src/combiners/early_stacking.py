@@ -9,7 +9,7 @@ from .creation import combiners
 
 
 class EarlyStacking(metaclass=abc.ABCMeta):
-    def __init__(self, base_model, new_model, dataset, preference, model):
+    def __init__(self, base_model, new_model, dataset, preference, model, **kwargs):
         self.base_model = base_model
         self.new_model = new_model
         self.dataset = dataset

@@ -1,3 +1,4 @@
+from .combined_score import Combined
 from .confidence import Confidence
 from .creation import combiners
 from .defer import Defer

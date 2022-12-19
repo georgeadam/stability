@@ -24,7 +24,7 @@ os.chdir(ROOT_DIR)
 config_path = os.path.join(ROOT_DIR, "configs")
 
 
-def fit_and_predict_original(args, dataset, logger):
+def fit_and_predict_base(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
@@ -43,10 +43,10 @@ def fit_and_predict_original(args, dataset, logger):
     test_logits = torch.cat(test_logits)
     test_preds = torch.argmax(test_logits, dim=1).detach().cpu().numpy()
 
-    return model, train_preds, test_preds
+    return model, train_preds, test_preds, callbacks["prediction_tracker"]
 
 
-def fit_and_predict_new(args, dataset, original_model, logger):
+def fit_and_predict_new(args, dataset, original_model, logger, base_prediction_tracker):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
@@ -62,6 +62,8 @@ def fit_and_predict_new(args, dataset, original_model, logger):
     train_preds = torch.argmax(train_logits, dim=1).detach().cpu().numpy()
 
     combiner = combiners.create(args.combiner.name, base_model=original_model, new_model=model, dataset=dataset,
+                                base_prediction_tracker=base_prediction_tracker,
+                                new_prediction_tracker=callbacks["prediction_tracker"],
                                 **args.combiner.params)
 
     test_preds = combiner.predict(dataset.test_dataloader())
@@ -98,12 +100,14 @@ def create_trainer(args, callbacks, logger):
 def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "flip_tracker": trackers.create("flip"),
-            "progress_bar": custom_callbacks.create("progress_bar", refresh_rate=1, process_position=0)}
+            "progress_bar": custom_callbacks.create("progress_bar", refresh_rate=1, process_position=0),
+            "prediction_tracker": trackers.create("prediction")}
 
 
 def create_callbacks_new(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "churn_tracker": trackers.create("churn")}
+            "churn_tracker": trackers.create("churn"),
+            "prediction_tracker": trackers.create("prediction")}
 
 
 @hydra.main(config_path=config_path, config_name="moe")
@@ -126,18 +130,19 @@ def main(args: DictConfig):
                                                          args.experiment_name,
                                                          args.misc.seed))
     wandb_logger.experiment.config.update(cfg)
-    original_model, original_train_preds, original_test_preds = fit_and_predict_original(args, dataset, wandb_logger)
+    base_model, base_train_preds, base_test_preds, base_prediction_tracker = fit_and_predict_base(args, dataset, wandb_logger)
 
     # Training on combined data
     dataset.merge_train_and_extra_data()
     wandb_logger = WandbLogger(project="stability", prefix="combined")
-    new_train_preds, new_test_preds = fit_and_predict_new(args, dataset, original_model, wandb_logger)
+    new_train_preds, new_test_preds = fit_and_predict_new(args, dataset, base_model,
+                                                          wandb_logger, base_prediction_tracker)
 
-    log_final_metrics(dataset, new_test_preds, new_train_preds, original_test_preds, original_train_preds)
+    log_final_metrics(dataset, new_test_preds, new_train_preds, base_test_preds, base_train_preds)
 
     # Save predictions
     if args.misc.save_predictions:
-        save_predictions(original_train_preds, original_test_preds, new_train_preds, new_test_preds)
+        save_predictions(base_train_preds, base_test_preds, new_train_preds, new_test_preds)
 
 
 if __name__ == "__main__":
