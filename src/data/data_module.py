@@ -49,6 +49,10 @@ class DataModule(LightningDataModule):
         self.orig_train_data.transform = self.supervised_transform
         return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False)
 
+    def train_dataloader_inference(self, batch_size):
+        self.train_data.transform = self.tensor_transform
+        return DataLoader(self.train_data, batch_size=batch_size, shuffle=False)
+
     def val_dataloader(self):
         self.val_data.transform = self.tensor_transform
         return DataLoader(self.val_data, batch_size=self.batch_size)
