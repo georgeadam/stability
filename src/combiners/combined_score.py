@@ -1,20 +1,19 @@
 import numpy as np
 import torch
+from sklearn.neighbors import NearestNeighbors
 
 from .combiner import Combiner
 from .creation import combiners
-
-from sklearn.neighbors import NearestNeighbors
+from .scorers import scorers
 
 
 class Combined(Combiner):
-    def __init__(self, base_model, new_model, dataset, base_prediction_tracker, new_prediction_tracker, **kwargs):
+    def __init__(self, base_model, new_model, dataset, base_prediction_tracker, new_prediction_tracker, scorer_args,
+                 **kwargs):
         super().__init__(base_model, new_model, dataset)
-        self.base_predictions = base_prediction_tracker.validation_predictions
-        self.base_predictions = self.base_predictions["preds"].to_numpy().reshape((-1, int(self.base_predictions["epoch"].max() + 1)), order="F")
-
-        self.new_predictions = new_prediction_tracker.validation_predictions
-        self.new_predictions = self.new_predictions["preds"].to_numpy().reshape((-1, int(self.new_predictions["epoch"].max() + 1)), order="F")
+        self.scorer_args = scorer_args
+        self.base_predictions = base_prediction_tracker.get_validation_predictions()
+        self.new_predictions = new_prediction_tracker.get_validation_predictions()
 
         self.base_nearest_neighbors = None
         self.new_nearest_neighbors = None
@@ -27,7 +26,7 @@ class Combined(Combiner):
     def predict(self, dataloader):
         with torch.no_grad():
             base_confidences, new_confidences, base_preds, new_preds = self._get_confidences(dataloader)
-            base_scores, new_scores = self._get_savg_scores(dataloader)
+            base_scores, new_scores = self._get_scores(dataloader)
 
         stacked_preds = np.stack([base_preds, new_preds], axis=1)
         sample_indices = np.arange(len(stacked_preds))
@@ -42,7 +41,7 @@ class Combined(Combiner):
             base_confidences, new_confidences, base_preds, new_preds = self._get_confidences(dataloader,
                                                                                              base_temperature,
                                                                                              new_temperature)
-            base_scores, new_scores = self._get_savg_scores(dataloader)
+            base_scores, new_scores = self._get_scores(dataloader)
 
         stacked_preds = np.stack([base_preds, new_preds], axis=1)
         sample_indices = np.arange(len(stacked_preds))
@@ -52,7 +51,7 @@ class Combined(Combiner):
 
         return meta_preds, base_preds, new_preds, meta_choices
 
-    def _get_savg_scores(self, dataloader):
+    def _get_scores(self, dataloader):
         base_embeddings = extract_embeddings(dataloader, self.base_model)
         base_neighbor_indices = self.base_nearest_neighbors.kneighbors(base_embeddings)[1]
         base_scores = self.base_scores[base_neighbor_indices]
@@ -95,11 +94,10 @@ class Combined(Combiner):
         return all_base_confidences, all_new_confidences, all_base_preds, all_new_preds
 
     def _setup(self):
-        base_scores = [compute_s_avg(pred) for pred in self.base_predictions]
-        self.base_scores = np.array(base_scores)
+        scorer = scorers.create(self.scorer_args.name, **self.scorer_args.params)
 
-        new_scores = [compute_s_avg(pred) for pred in self.new_predictions]
-        self.new_scores = np.array(new_scores)
+        self.base_scores = scorer.generate_scores(self.base_predictions)
+        self.new_scores = scorer.generate_scores(self.new_predictions)
 
         base_embeddings = extract_embeddings(self.dataset.val_dataloader(), self.base_model)
         base_nearest_neighbors = NearestNeighbors(n_neighbors=10)
@@ -112,29 +110,6 @@ class Combined(Combiner):
 
 def confidence(probs):
     return torch.max(probs, dim=1).values
-
-
-def compute_s_avg(labels, k=0.001):
-    a_t = []
-    L = labels[-1]
-
-    for l in labels:
-        if l == L:
-            a_t.append(0)
-        else:
-            a_t.append(1)
-
-    a_t = np.array(a_t, dtype='f')
-
-    v_t = np.ones(len(labels)) - np.linspace(0, 1, len(labels)) ** k
-
-    if np.sum(a_t) == 0.0:
-        s_avg = v_t[0]
-
-    else:
-        s_avg = (1 / np.sum(a_t)) * np.sum(a_t * v_t)
-
-    return s_avg
 
 
 @torch.no_grad()

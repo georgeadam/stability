@@ -1,2 +1,4 @@
 name: combined
+defaults:
+    - scorer@params.scorer_args: average_confidence
 params: {}

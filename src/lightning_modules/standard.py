@@ -110,6 +110,7 @@ class Standard(LightningModule):
         if len(y.shape) > 1:
             y = torch.argmax(y, dim=1)
 
+        probs_full = probs
         probs_gt = probs[torch.arange(len(probs)), y]
         probs = probs[torch.arange(len(probs)), preds]
 
@@ -127,7 +128,8 @@ class Standard(LightningModule):
         return {"preds": preds.cpu().numpy(), "y": y.cpu().numpy(), "correct": correct.cpu().numpy(),
                 "index": index.cpu().numpy(), "epoch": epoch,
                 "acc": acc, "original_preds": original_preds.cpu().numpy(), "source": source.cpu().numpy(),
-                "probs": probs.cpu().numpy(), "probs_gt": probs_gt.cpu().numpy()}
+                "probs": probs.cpu().numpy(), "probs_gt": probs_gt.cpu().numpy(),
+                "probs_full": probs_full.cpu().numpy()}
 
 
 lightning_modules.register_builder("standard", Standard)

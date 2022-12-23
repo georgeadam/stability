@@ -101,13 +101,13 @@ def create_callbacks_original(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "flip_tracker": trackers.create("flip"),
             "progress_bar": custom_callbacks.create("progress_bar", refresh_rate=1, process_position=0),
-            "prediction_tracker": trackers.create("prediction")}
+            "prediction_tracker": trackers.create("moe_prediction")}
 
 
 def create_callbacks_new(args):
     return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
             "churn_tracker": trackers.create("churn"),
-            "prediction_tracker": trackers.create("prediction")}
+            "prediction_tracker": trackers.create("moe_prediction")}
 
 
 @hydra.main(config_path=config_path, config_name="moe")
