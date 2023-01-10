@@ -8,4 +8,5 @@ from .embedding_to_logit import EmbeddingToLogit
 from .entropy import Entropy
 from .gradnorm import GradNorm
 from .kl_div import KLDiv
+from .single_score import SingleScore
 from .stacking import Stacking

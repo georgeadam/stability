@@ -1,0 +1,4 @@
+name: single_score
+defaults:
+    - scorer@params.scorer_args: savg
+params: {}
