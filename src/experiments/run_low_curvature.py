@@ -1,3 +1,4 @@
+import logging
 import os
 
 import hydra
@@ -46,8 +47,15 @@ def cosine_similarity(gradients, gradient):
     return np.dot(gradients, gradient) / (np.linalg.norm(gradients, axis=1, ord=2) * np.linalg.norm(gradient, ord=2))
 
 
+def magnitude(gradient):
+    return np.linalg.norm(gradient, ord=2)
+
+
 @hydra.main(config_path=config_path, config_name="low_curvature")
 def main(args: DictConfig):
+    logging.info("\n" + OmegaConf.to_yaml(args))
+    logging.info("Saving to: {}".format(os.getcwd()))
+
     seed_everything(args.misc.seed)
 
     dataset = datasets.create(args.data.name, **args.data.params)
@@ -77,6 +85,7 @@ def main(args: DictConfig):
     nfr = 0
     nfrs = {"nfr": [], "epoch": []}
     cosine_similarities = {"cosine_similarity": [], "epoch": [], "source": []}
+    gradient_magnitudes = {"magnitude": [], "epoch": [], "source": []}
 
     for epoch in range(1, args.epochs + 1):
         for x, y, _, _ in dataloader:
@@ -89,12 +98,18 @@ def main(args: DictConfig):
             overall_gradient = np.mean(per_sample_gradients, axis=0)
             original_cosine_similarities = cosine_similarity(per_sample_gradients, overall_gradient)
             projected_cosine_similarities = cosine_similarity(per_sample_gradients, projected_gradient)
+            original_gradient_magnitude = magnitude(overall_gradient)
+            projected_gradient_magnitude = magnitude(projected_gradient)
 
             cosine_similarities["cosine_similarity"] += list(original_cosine_similarities)
             cosine_similarities["cosine_similarity"] += list(projected_cosine_similarities)
             cosine_similarities["epoch"] += [epoch] * len(x) * 2
             cosine_similarities["source"] += ["original"] * len(x)
             cosine_similarities["source"] += ["projected"] * len(x)
+
+            gradient_magnitudes["magnitude"] += [original_gradient_magnitude, projected_gradient_magnitude]
+            gradient_magnitudes["epoch"] += [epoch] * 2
+            gradient_magnitudes["source"] += ["original", "projected"]
 
             optimizer.step()
             optimizer.zero_grad()
@@ -121,6 +136,8 @@ def main(args: DictConfig):
 
     cosine_similarities = pd.DataFrame(cosine_similarities)
     cosine_similarities.to_csv("cosine_similarities.csv")
+    gradient_magnitudes = pd.DataFrame(gradient_magnitudes)
+    gradient_magnitudes.to_csv("gradient_magnitudes.csv")
     nfrs = pd.DataFrame(nfrs)
     nfrs.to_csv("nfrs.csv")
 

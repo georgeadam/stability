@@ -1,0 +1,5 @@
+name: quadprog
+params:
+    eps: 0.0
+    margin: 0.25
+    normalize: True
