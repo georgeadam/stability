@@ -6,6 +6,7 @@ num_samples: 1000
 defaults:
     - data: mnist
     - gradient_projector: identity # null, linprog, or hessian
+    - loss: ce
     - misc: default
     - model: lenet1
 hydra:

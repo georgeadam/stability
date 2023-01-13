@@ -15,7 +15,8 @@ from settings import ROOT_DIR
 from src.data import datasets
 from src.gradient_projectors import gradient_projectors
 from src.gradient_projectors.utils import get_per_sample_gradients, grad_vector_to_parameters
-from src.models.lenet import models
+from src.losses import losses
+from src.models import models
 from src.utils.hydra import get_wandb_run
 
 os.chdir(ROOT_DIR)
@@ -33,6 +34,9 @@ def evaluate_model(model, dataloader, device, loss_fn):
             x, y = x.to(device), y.to(device)
             out = model(x)
             pred = torch.argmax(out, 1)
+            prob = torch.nn.Softmax(dim=1)(out)
+            sample_indices = torch.arange(len(prob))
+            predicted_prob = prob[sample_indices, pred]
             correct += (pred == y).sum().item()
             count += len(x)
             loss += loss_fn(out, y).item() * len(x)
@@ -40,7 +44,7 @@ def evaluate_model(model, dataloader, device, loss_fn):
     acc = correct / float(count)
     loss = loss / float(count)
 
-    return acc, loss, pred.detach().cpu().numpy()
+    return acc, loss, pred.detach().cpu().numpy(), predicted_prob.detach().cpu().numpy(), prob
 
 
 def cosine_similarity(gradients, gradient):
@@ -69,7 +73,7 @@ def main(args: DictConfig):
                           height=dataset.height, **args.model.params)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = losses.create(args.loss.name, **args.loss.params)
     device = "cuda:0"
     model = model.to(device)
     gradient_projector = gradient_projectors.create(args.gradient_projector.name, **args.gradient_projector.params)
@@ -86,6 +90,8 @@ def main(args: DictConfig):
     nfrs = {"nfr": [], "epoch": []}
     cosine_similarities = {"cosine_similarity": [], "epoch": [], "source": []}
     gradient_magnitudes = {"magnitude": [], "epoch": [], "source": []}
+    per_sample_gradient_magnitudes = {"sample_idx": [], "epoch": [], "magnitude": []}
+    predictions = {"sample_idx": [], "epoch": [], "pred": [], "prob": []}
 
     for epoch in range(1, args.epochs + 1):
         for x, y, _, _ in dataloader:
@@ -100,6 +106,7 @@ def main(args: DictConfig):
             projected_cosine_similarities = cosine_similarity(per_sample_gradients, projected_gradient)
             original_gradient_magnitude = magnitude(overall_gradient)
             projected_gradient_magnitude = magnitude(projected_gradient)
+            epoch_per_sample_magnitudes = [magnitude(per_sample_gradients[i]) for i in range(len(per_sample_gradients))]
 
             cosine_similarities["cosine_similarity"] += list(original_cosine_similarities)
             cosine_similarities["cosine_similarity"] += list(projected_cosine_similarities)
@@ -111,9 +118,18 @@ def main(args: DictConfig):
             gradient_magnitudes["epoch"] += [epoch] * 2
             gradient_magnitudes["source"] += ["original", "projected"]
 
+            per_sample_gradient_magnitudes["sample_idx"] += list(range(len(x)))
+            per_sample_gradient_magnitudes["epoch"] += [epoch] * len(x)
+            per_sample_gradient_magnitudes["magnitude"] += epoch_per_sample_magnitudes
+
             optimizer.step()
             optimizer.zero_grad()
-            acc, loss, pred = evaluate_model(model, dataloader, device, loss_fn)
+            acc, loss, pred, prob, _ = evaluate_model(model, dataloader, device, loss_fn)
+
+            predictions["sample_idx"] += list(range(len(x)))
+            predictions["epoch"] += [epoch] * len(x)
+            predictions["pred"] += list(pred)
+            predictions["prob"] += list(prob)
 
             wandb_logger.log_metrics({"train/loss": loss}, step=epoch)
             wandb_logger.log_metrics({"train/acc": acc}, step=epoch)
@@ -138,6 +154,10 @@ def main(args: DictConfig):
     cosine_similarities.to_csv("cosine_similarities.csv")
     gradient_magnitudes = pd.DataFrame(gradient_magnitudes)
     gradient_magnitudes.to_csv("gradient_magnitudes.csv")
+    per_sample_gradient_magnitudes = pd.DataFrame(per_sample_gradient_magnitudes)
+    per_sample_gradient_magnitudes.to_csv("per_sample_gradient_magnitudes.csv")
+    predictions = pd.DataFrame(predictions)
+    predictions.to_csv("predictions.csv")
     nfrs = pd.DataFrame(nfrs)
     nfrs.to_csv("nfrs.csv")
 
