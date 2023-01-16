@@ -3,6 +3,7 @@ from .confidence import Confidence
 from .creation import combiners
 from .defer import Defer
 from .early_stacking import EarlyStacking
+from .energy import Energy
 from .embedding_to_embedding import EmbeddingToEmbedding
 from .embedding_to_logit import EmbeddingToLogit
 from .entropy import Entropy
