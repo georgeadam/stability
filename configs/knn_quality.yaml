@@ -1,0 +1,7 @@
+experiment_name: knn_quality
+experiment_dir: "results/moe_analysis/fashion_mnist/lenet4/_"
+run_id: 2dneead1
+hydra:
+    run:
+        dir: results/knn_quality/${wandb_run:}
+    output_subdir: .
