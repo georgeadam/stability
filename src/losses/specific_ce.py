@@ -12,12 +12,13 @@ class SpecificCELoss(LossInterface):
         with torch.no_grad():
             relevant_samples = (second_likeliest != y).float()
 
-        probs = torch.nn.LogSoftmax(dim=1)(out)
+        probs = torch.nn.Softmax(dim=1)(out)
         probs = 1 - probs
+        probs = torch.log(probs)
 
         second_likeliest_loss = torch.nn.NLLLoss(reduction="none")(probs, second_likeliest)
         second_likeliest_loss *= relevant_samples
-        second_likeliest_loss = second_likeliest_loss.sum()
+        second_likeliest_loss = second_likeliest_loss.mean()
 
         return ce_loss +  second_likeliest_loss
 
