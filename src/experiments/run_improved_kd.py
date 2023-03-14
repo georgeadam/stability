@@ -6,18 +6,17 @@ import torch
 import wandb
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import trackers, scorers, custom_callbacks
+from src.callbacks import callbacks
 from src.data import datasets
 from src.label_smoothers import label_smoothers
 from src.lightning_modules import lightning_modules
 from src.models import models
 from src.samplers import samplers
+from src.trainers import Trainer
 from src.utils.logging import log_final_metrics
 from src.utils.save import save_predictions
 
@@ -32,7 +31,7 @@ def fit_and_predict_original(args, dataset, logger):
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
-    trainer = create_trainer_orig(args, list(callbacks.values()), logger)
+    trainer = create_trainer_orig(args, list(callbacks.values()), logger, "orig")
 
     trainer.fit(module, datamodule=dataset)
 
@@ -58,7 +57,7 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     module = create_module_distill(args, model, original_model)
     sampler = create_sampler(args, len(dataset.train_data))
     callbacks = create_callbacks_distill(args, sampler.epochs_until_full)
-    trainer = create_trainer_distill(args, list(callbacks.values()), logger)
+    trainer = create_trainer_distill(args, list(callbacks.values()), logger, "new")
 
     trainer.fit(module, train_dataloaders=dataset.train_dataloader_curriculum(sampler),
                 val_dataloaders=dataset.val_dataloader())
@@ -88,8 +87,9 @@ def create_module_distill(args, model, original_model):
                                     **args.distill_module.params)
 
 
-def create_trainer_orig(args, callbacks, logger):
-    trainer = Trainer(logger=logger,
+def create_trainer_orig(args, callbacks, logger, split):
+    trainer = Trainer(split=split,
+                      logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
@@ -99,8 +99,9 @@ def create_trainer_orig(args, callbacks, logger):
     return trainer
 
 
-def create_trainer_distill(args, callbacks, logger):
-    trainer = Trainer(logger=logger,
+def create_trainer_distill(args, callbacks, logger, split):
+    trainer = Trainer(split=split,
+                      logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
@@ -111,16 +112,21 @@ def create_trainer_distill(args, callbacks, logger):
 
 
 def create_callbacks_original(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "scorer": scorers.create(args.scorer.name, **args.scorer.params),
-            "flip_tracker": trackers.create("flip")}
+    callbacks_dict = {key: callbacks.create(value.name, **value.params) for key, value in args.callbacks.items()}
+    callbacks_dict["flip_tracker"] = callbacks.create("flip_tracker")
+    callbacks_dict["scorer"] = callbacks.create(args.scorer.name, **args.scorer.params)
+
+    return callbacks_dict
 
 
 def create_callbacks_distill(args, epochs_until_full):
-    return {"early_stopping": custom_callbacks.create("curriculum_early_stopping", monitor="val/loss",
+    callbacks_dict = {key: callbacks.create(value.name, **value.params) for key, value in args.callbacks.items()}
+    callbacks_dict["early_stopping"] =  callbacks.create("curriculum_early_stopping", monitor="val/loss",
                                                       epochs_until_full=epochs_until_full,
-                                                      **args.callbacks.early_stopping),
-            "churn_tracker": trackers.create("churn")}
+                                                      **args.callbacks.early_stopping.params)
+    callbacks_dict["churn_tracker"] = callbacks.create("churn_tracker")
+
+    return callbacks_dict
 
 
 def create_sampler(args, dataset_size):

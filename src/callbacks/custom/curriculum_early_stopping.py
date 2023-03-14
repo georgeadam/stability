@@ -1,6 +1,6 @@
 from pytorch_lightning.callbacks import EarlyStopping
 
-from .creation import custom_callbacks
+from ..creation import callbacks
 
 
 class CurriculumEarlyStopping(EarlyStopping):
@@ -18,4 +18,4 @@ class CurriculumEarlyStopping(EarlyStopping):
         pass
 
 
-custom_callbacks.register_builder("curriculum_early_stopping", CurriculumEarlyStopping)
+callbacks.register_builder("curriculum_early_stopping", CurriculumEarlyStopping)

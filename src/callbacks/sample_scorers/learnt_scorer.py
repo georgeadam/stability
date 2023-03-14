@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .creation import scorers
+from ..creation import callbacks
 from .scorer import Scorer
 
 
@@ -40,4 +40,4 @@ class LearntScorer(Scorer):
             return np.array(combined.index), combined.values
 
 
-scorers.register_builder("learnt", LearntScorer)
+callbacks.register_builder("learnt_scorer", LearntScorer)

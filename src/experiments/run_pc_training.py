@@ -6,16 +6,15 @@ import torch
 import wandb
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from settings import ROOT_DIR
-from src.callbacks import trackers
+from src.callbacks import callbacks
 from src.data import datasets
 from src.lightning_modules import lightning_modules
 from src.models import models
+from src.trainers import Trainer
 from src.utils.logging import log_final_metrics
 from src.utils.save import save_predictions
 
@@ -30,7 +29,7 @@ def fit_and_predict_original(args, dataset, logger):
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
-    trainer = create_trainer_orig(args, list(callbacks.values()), logger)
+    trainer = create_trainer_orig(args, list(callbacks.values()), logger, "orig")
 
     trainer.fit(module, datamodule=dataset)
 
@@ -55,7 +54,7 @@ def fit_and_predict_distill(args, dataset, original_model, logger):
     model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
     module = create_module_distill(args, model, original_model)
     callbacks = create_callbacks_distill(args)
-    trainer = create_trainer_distill(args, list(callbacks.values()), logger)
+    trainer = create_trainer_distill(args, list(callbacks.values()), logger, "new")
 
     trainer.fit(module, train_dataloaders=dataset.train_dataloader(),
                 val_dataloaders=dataset.val_dataloader())
@@ -85,8 +84,9 @@ def create_module_distill(args, model, original_model):
                                     **args.distill_module.params)
 
 
-def create_trainer_orig(args, callbacks, logger):
-    trainer = Trainer(logger=logger,
+def create_trainer_orig(args, callbacks, logger, split):
+    trainer = Trainer(split=split,
+                      logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
@@ -96,8 +96,9 @@ def create_trainer_orig(args, callbacks, logger):
     return trainer
 
 
-def create_trainer_distill(args, callbacks, logger):
-    trainer = Trainer(logger=logger,
+def create_trainer_distill(args, callbacks, logger, split):
+    trainer = Trainer(split=split,
+                      logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
                       deterministic=True,
@@ -108,13 +109,17 @@ def create_trainer_distill(args, callbacks, logger):
 
 
 def create_callbacks_original(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "flip_tracker": trackers.create("flip")}
+    callbacks_dict = {key: callbacks.create(value.name, **value.params) for key, value in args.callbacks.items()}
+    callbacks_dict["flip_tracker"] = callbacks.create("flip_tracker")
+
+    return callbacks_dict
 
 
 def create_callbacks_distill(args):
-    return {"early_stopping": EarlyStopping("val/loss", **args.callbacks.early_stopping),
-            "churn_tracker": trackers.create("churn")}
+    callbacks_dict = {key: callbacks.create(value.name, **value.params) for key, value in args.callbacks.items()}
+    callbacks_dict["churn_tracker"] = callbacks.create("churn_tracker")
+
+    return callbacks_dict
 
 
 @hydra.main(config_path=config_path, config_name="pc_training")

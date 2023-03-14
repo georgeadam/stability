@@ -1,7 +1,7 @@
 import pandas as pd
 from pytorch_lightning.callbacks import Callback
 
-from .creation import trackers
+from ..creation import callbacks
 
 
 class PredictionTracker(Callback):
@@ -32,4 +32,4 @@ class PredictionTracker(Callback):
         self.validation_predictions = pd.concat([self.validation_predictions, outputs])
 
 
-trackers.register_builder("prediction", PredictionTracker)
+callbacks.register_builder("prediction_tracker", PredictionTracker)

@@ -1,4 +1,3 @@
-early_stopping:
-    patience: 5
-model_checkpoint:
-    every_n_epochs: 10
+defaults:
+    - custom@early_stopping: early_stopping
+    - custom@model_checkpoint: model_checkpoint

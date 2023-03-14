@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .creation import scorers
+from ..creation import callbacks
 from .scorer import Scorer
 
 
@@ -31,4 +31,4 @@ class SelfTaughtScorer(Scorer):
             return indices, 1 - probs
 
 
-scorers.register_builder("self_taught", SelfTaughtScorer)
+callbacks.register_builder("self_taught_scorer", SelfTaughtScorer)

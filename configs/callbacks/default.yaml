@@ -1,2 +1,2 @@
-early_stopping:
-    patience: 5
+defaults:
+    - custom@early_stopping: early_stopping

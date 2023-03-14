@@ -1,5 +1,6 @@
-from .creation import custom_callbacks
 from pytorch_lightning.callbacks import TQDMProgressBar
+
+from ..creation import callbacks
 
 
 class ProgressBar(TQDMProgressBar):
@@ -22,4 +23,4 @@ class ProgressBar(TQDMProgressBar):
             s = sep.join(map(str, args))
             active_progress_bar.write(s, **kwargs)
 
-custom_callbacks.register_builder("progress_bar", ProgressBar)
+callbacks.register_builder("progress_bar", ProgressBar)

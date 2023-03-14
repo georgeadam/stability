@@ -9,5 +9,5 @@ defaults:
     - trainer: default
 hydra:
     run:
-        dir: results/${data.name}/${model.name}/cold_start/${misc.seed}
+        dir: results/${data.name}/${model.name}/${experiment_name}/${wandb_run:}
     output_subdir: .

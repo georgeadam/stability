@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .creation import scorers
+from ..creation import callbacks
 from .scorer import Scorer
 
 
@@ -44,4 +44,4 @@ class FlipScorer(Scorer):
             return unique_indices, flips
 
 
-scorers.register_builder("flip", FlipScorer)
+callbacks.register_builder("flip_scorer", FlipScorer)

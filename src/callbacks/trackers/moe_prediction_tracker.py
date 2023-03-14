@@ -1,7 +1,7 @@
 import numpy as np
 from pytorch_lightning.callbacks import Callback
 
-from .creation import trackers
+from ..creation import callbacks
 
 
 class MOEPredictionTracker(Callback):
@@ -42,4 +42,4 @@ class MOEPredictionTracker(Callback):
         return validation_predictions
 
 
-trackers.register_builder("moe_prediction", MOEPredictionTracker)
+callbacks.register_builder("moe_prediction_tracker", MOEPredictionTracker)

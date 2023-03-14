@@ -1,7 +1,7 @@
 import pandas as pd
 from pytorch_lightning.callbacks import Callback
 
-from .creation import trackers
+from ..creation import callbacks
 
 
 class FlipTracker(Callback):
@@ -47,4 +47,4 @@ class FlipTracker(Callback):
         pl_module.log('val/negative_flips', flips, on_step=False, on_epoch=True)
 
 
-trackers.register_builder("flip", FlipTracker)
+callbacks.register_builder("flip_tracker", FlipTracker)

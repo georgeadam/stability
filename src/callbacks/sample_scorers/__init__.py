@@ -1,4 +1,3 @@
-from .creation import scorers
 from .flip_scorer import FlipScorer
 from .learnt_scorer import LearntScorer
 from .self_taught import SelfTaughtScorer

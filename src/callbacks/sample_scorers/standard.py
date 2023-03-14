@@ -1,4 +1,4 @@
-from .creation import scorers
+from ..creation import callbacks
 from .scorer import Scorer
 
 
@@ -13,4 +13,4 @@ class StandardScorer(Scorer):
         return None, None
 
 
-scorers.register_builder("standard", StandardScorer)
+callbacks.register_builder("standard_scorer", StandardScorer)
