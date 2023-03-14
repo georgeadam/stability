@@ -147,6 +147,9 @@ def main(args: DictConfig):
 
             torch.save(model.state_dict(), result_path + "/checkpoint_{}.pt".format(epoch))
 
+        if acc == 1.0:
+            break
+
         prev_pred = pred
         wandb_logger.log_metrics({"train/nfr": nfr}, step=epoch)
 
