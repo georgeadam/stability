@@ -1,0 +1,9 @@
+experiment_name: ensemble_offline
+data: mnist
+model: lenet
+random_state: null
+num_models: 3
+hydra:
+    run:
+        dir: results/${data}/${model}/${experiment_name}/${wandb_run:}
+    output_subdir: .
