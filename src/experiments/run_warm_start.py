@@ -85,7 +85,7 @@ def create_trainer(args, callbacks, logger, split):
                       logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
-                      deterministic=True,
+                      deterministic=False,
                       gpus=1,
                       **args.trainer)
 

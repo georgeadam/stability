@@ -27,7 +27,7 @@ def predict(args, dataset, split):
     inferer = Prediction()
 
     for i in range(args.num_models):
-        run = get_run(args.model, args.data, args.random_state, i)
+        run = get_run(args.model_name, args.data_name, args.random_state, i)
         config = get_config(run)
 
         if dataset is None:
@@ -98,8 +98,8 @@ def main(args: DictConfig):
     # Initial training
     wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
     wandb_logger = WandbLogger(project="stability", prefix="initial",
-                               name="{}_{}_{}-{}".format(args.data,
-                                                         args.model,
+                               name="{}_{}_{}-{}".format(args.data_name,
+                                                         args.model_name,
                                                          args.experiment_name,
                                                          args.random_state))
     wandb_logger.experiment.config.update(cfg)

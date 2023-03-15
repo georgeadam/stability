@@ -92,7 +92,7 @@ def create_trainer_orig(args, callbacks, logger, split):
                       logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
-                      deterministic=True,
+                      deterministic=False,
                       gpus=1,
                       **args.orig_trainer)
 
@@ -104,7 +104,7 @@ def create_trainer_distill(args, callbacks, logger, split):
                       logger=logger,
                       log_every_n_steps=1,
                       callbacks=callbacks,
-                      deterministic=True,
+                      deterministic=False,
                       gpus=1,
                       **args.distill_trainer)
 
