@@ -76,8 +76,7 @@ def get_all_checkpoint_predictions(config, dataset, dataloader, checkpoint_dir, 
     all_predictions = []
 
     for checkpoint_file in checkpoints:
-        model = models.create(config.model.name, num_classes=dataset.num_classes, num_channels=dataset.num_channels,
-                              height=dataset.height, **config.model.params)
+        model = models.create(config.model.name, num_classes=dataset.num_classes, **dataset.stats, **config.model.params)
         checkpoint = torch.load(os.path.join(checkpoint_dir, checkpoint_file))
         state_dict = remove_prefix(checkpoint["state_dict"])
 
@@ -177,10 +176,10 @@ def main(args: DictConfig):
     base_checkpoints, new_checkpoints = get_checkpoints(checkpoint_dir)
 
     model_base = models.create(experiment_config.model.name, num_classes=dataset.num_classes,
-                               num_channels=dataset.num_channels, height=dataset.height,
+                               **dataset.stats,
                                **experiment_config.model.params)
     model_new = models.create(experiment_config.model.name, num_classes=dataset.num_classes,
-                              num_channels=dataset.num_channels, height=dataset.height,
+                              **dataset.stats,
                               **experiment_config.model.params)
     checkpoint_base = torch.load(os.path.join(checkpoint_dir, base_checkpoints[-1]))
     checkpoint_new = torch.load(os.path.join(checkpoint_dir, new_checkpoints[-1]))

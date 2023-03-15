@@ -27,7 +27,7 @@ def fit_and_predict_original(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
+    model = create_model(args, dataset.num_classes, dataset.stats)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
     trainer = create_trainer(args, list(callbacks.values()), logger, "orig")
@@ -65,8 +65,8 @@ def fit_and_predict_warm(args, dataset, model, logger):
     return train_preds, test_preds
 
 
-def create_model(args, num_classes, num_channels, height):
-    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height,
+def create_model(args, num_classes, dataset_stats):
+    return models.create(args.model.name, num_classes=num_classes, **dataset_stats,
                          **args.model.params)
 
 

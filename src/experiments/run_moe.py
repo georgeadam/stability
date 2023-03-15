@@ -27,7 +27,7 @@ def fit_and_predict_base(args, dataset, logger):
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
+    model = create_model(args, dataset.num_classes, dataset.stats)
     module = create_module_original(args, model)
     callbacks = create_callbacks_original(args)
     trainer = create_trainer(args, list(callbacks.values()), logger, "orig")
@@ -49,7 +49,7 @@ def fit_and_predict_new(args, dataset, original_model, logger, base_prediction_t
     if args.misc.reset_random_state:
         seed_everything(args.misc.seed)
 
-    model = create_model(args, dataset.num_classes, dataset.num_channels, dataset.height)
+    model = create_model(args, dataset.num_classes, dataset.stats)
     module = create_module_new(args, model, original_model)
     callbacks = create_callbacks_new(args)
     trainer = create_trainer(args, list(callbacks.values()), logger, "new")
@@ -70,8 +70,8 @@ def fit_and_predict_new(args, dataset, original_model, logger, base_prediction_t
     return train_preds, test_preds
 
 
-def create_model(args, num_classes, num_channels, height):
-    return models.create(args.model.name, num_classes=num_classes, num_channels=num_channels, height=height,
+def create_model(args, num_classes, dataset_stats):
+    return models.create(args.model.name, num_classes=num_classes, **dataset_stats,
                          **args.model.params)
 
 
@@ -100,7 +100,7 @@ def create_trainer(args, callbacks, logger, split):
 def create_callbacks_original(args):
     callbacks_dict = {key: callbacks.create(value.name, **value.params) for key, value in args.callbacks.items()}
     callbacks_dict["flip_tracker"] = callbacks.create("flip_tracker")
-    callbacks_dict["progress_bar"] = callbacks.create("progress_bar", refresh_rate=1, process_position=0)
+    # callbacks_dict["progress_bar"] = callbacks.create("progress_bar", refresh_rate=1, process_position=0)
     callbacks_dict["prediction_tracker"] = callbacks.create("moe_prediction_tracker")
 
     return callbacks_dict

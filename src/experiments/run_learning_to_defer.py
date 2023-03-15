@@ -57,10 +57,10 @@ def main(args: DictConfig):
     dataset = datasets.create(experiment_config.data.name, **experiment_config.data.params)
 
     model_base = models.create(experiment_config.model.name, num_classes=dataset.num_classes,
-                               num_channels=dataset.num_channels, height=dataset.height,
+                               **dataset.stats,
                                **experiment_config.model.params)
     model_new = models.create(experiment_config.model.name, num_classes=dataset.num_classes,
-                              num_channels=dataset.num_channels, height=dataset.height,
+                              **dataset.stats,
                               **experiment_config.model.params)
 
     checkpoint_base = torch.load(os.path.join(experiment_dir, base_checkpoint_path))

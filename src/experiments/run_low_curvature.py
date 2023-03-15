@@ -69,8 +69,7 @@ def main(args: DictConfig):
     dataset.train_data.indices = dataset.train_data.indices[random_indices]
     dataloader = dataset.train_dataloader_inference(args.num_samples)
 
-    model = models.create(args.model.name, num_classes=dataset.num_classes, num_channels=dataset.num_channels,
-                          height=dataset.height, **args.model.params)
+    model = models.create(args.model.name, num_classes=dataset.num_classes, **dataset.stats, **args.model.params)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     loss_fn = losses.create(args.loss.name, **args.loss.params)

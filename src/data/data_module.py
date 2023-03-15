@@ -99,12 +99,7 @@ class DataModule(LightningDataModule):
 
     @property
     @abc.abstractmethod
-    def num_channels(self):
-        return NotImplementedError
-
-    @property
-    @abc.abstractmethod
-    def height(self):
+    def stats(self):
         return NotImplementedError
 
     @property

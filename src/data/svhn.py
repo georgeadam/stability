@@ -159,6 +159,11 @@ class SVHNDataModule(DataModule):
         return 32
 
     @property
+    def stats(self):
+        return {"height": self.height,
+                "num_channels": self.num_channels}
+
+    @property
     def train_labels(self):
         return np.array(self.orig_train_data.targets)
 
