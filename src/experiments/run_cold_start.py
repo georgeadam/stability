@@ -6,7 +6,6 @@ import torch
 import wandb
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
