@@ -306,5 +306,39 @@ class Transformer(nn.Module):
         # return F.log_softmax(output, dim=-1)
         return output
 
+    def forward_embedding(self, inputs):
+        input_lengths = []
+
+        for i in range(len(inputs)):
+            temp = torch.where(inputs[i] == 1)[0]
+            if len(temp) == 0:
+                input_lengths.append(self.max_len)
+            else:
+                input_lengths.append(temp[0].item())
+
+        input_lengths = torch.tensor(input_lengths)
+
+        self.batch_size = inputs.size(0)
+
+        # Input dimensions (batch_size, seq_length, dmodel)
+        output = self.embedding(inputs)
+        output = self.pos_encoding(output)
+        output = self.tnf_blocks(output)
+        # Output dimensions (batch_size, seq_length, dmodel)
+
+        if self.pooling == 'max':
+            # Permute to the shape (batch_size, dmodel, seq_length)
+            # Apply max-pooling, output dimensions (batch_size, dmodel)
+            output = F.adaptive_max_pool1d(output.permute(0, 2, 1), (1,)).view(self.batch_size, -1)
+        else:
+            # Sum along the batch axis and divide by the corresponding lengths (FloatTensor)
+            # Output shape: (batch_size, dmodel)
+            output = torch.sum(output, dim=1) / input_lengths.view(-1, 1).type(torch.FloatTensor)
+
+        return output
+
+    def forward_classifier(self, x):
+        return self.linear(x)
+
 
 models.register_builder("transformer", Transformer)

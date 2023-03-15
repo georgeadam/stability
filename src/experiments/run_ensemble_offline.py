@@ -27,6 +27,7 @@ def predict(args, dataset, split):
     inferer = Prediction()
 
     for i in range(args.num_models):
+        logging.info("split: {} | seed: {}".format(split, i))
         run = get_run(args.model_name, args.data_name, args.random_state, i)
         config = get_config(run)
 
