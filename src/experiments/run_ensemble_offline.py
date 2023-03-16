@@ -29,6 +29,10 @@ def predict(args, dataset, split):
     for i in range(args.num_models):
         logging.info("split: {} | seed: {}".format(split, i))
         run = get_run(args.model_name, args.data_name, args.random_state, i)
+
+        if run is None:
+            continue
+
         config = get_config(run)
 
         if dataset is None:
@@ -73,6 +77,7 @@ def get_run(model_name, data_name, random_state, seed):
             "config.model.name": model_name}]})
 
     runs_processed = 0
+    run = None
 
     for run in runs:
         runs_processed += 1
