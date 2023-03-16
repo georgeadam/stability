@@ -24,6 +24,7 @@ def load_model(base_dir, checkpoint, args, dataset):
 
     model = models.create(args.model.name, num_classes=dataset.num_classes, **dataset.stats, **args.model.params)
     model.load_state_dict(state_dict)
+    model.eval()
 
     return model
 

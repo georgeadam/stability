@@ -22,6 +22,7 @@ class ImprovedKD(LightningModule):
         else:
             self.model = model
 
+        original_model.eval()
         self.original_model = original_model
         self.alpha = alpha
         self.eta = eta
