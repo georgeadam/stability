@@ -26,9 +26,11 @@ def predict(args, dataset, split):
 
     inferer = Prediction()
 
-    for i in range(args.num_models):
+    i = 0
+    while len(all_train_logits) < args.num_models and i < 10:
         logging.info("split: {} | seed: {}".format(split, i))
         run = get_run(args.model_name, args.data_name, args.random_state, i)
+        i += 1
 
         if run is None:
             continue
