@@ -6,5 +6,6 @@ from .pc_training import PCTraining
 from .prediction import Prediction
 from .projection import Projection
 from .reweight import Reweight
+from .stack_and_distill import StackAndDistill
 from .standard import Standard
 from .two_stage_kd import TwoStageKD
