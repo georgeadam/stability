@@ -4,6 +4,7 @@ from .cifar10 import CIFAR10DataModule
 from .cifar100 import CIFAR100DataModule
 from .creation import datasets
 from .emnist import EMNISTDataModule
+from .fairface import FairFaceDataModule
 from .fashion_mnist import FashionMNISTDataModule
 from .imdb import IMDBDataModule
 from .kmnist import KMNISTDataModule
