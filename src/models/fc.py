@@ -18,5 +18,15 @@ class FC(torch.nn.Module):
 
         return x
 
+    def forward_embedding(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+
+        return x
+
+    def forward_classifier(self, x):
+        x = self.fc2(x)
+
+        return x
 
 models.register_builder("fc", FC)

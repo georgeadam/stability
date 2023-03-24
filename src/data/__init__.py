@@ -11,5 +11,6 @@ from .imdb import IMDBDataModule
 from .kmnist import KMNISTDataModule
 from .mnist import MNISTDataModule
 from .mnist_binary import MNISTBinaryDataModule
+from .phoneme import PhonemeDataModule
 from .stl10 import STL10DataModule
 from .svhn import SVHNDataModule
