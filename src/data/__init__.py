@@ -1,3 +1,4 @@
+from .adult import AdultDataModule
 from .ag_news import AGNEWSDataModule
 from .celeba import CelebADataModule
 from .cifar10 import CIFAR10DataModule

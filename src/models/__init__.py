@@ -1,4 +1,5 @@
 from .creation import models
+from .fc import FC
 from .lenet import LeNet
 from .logistic_regression import LogisticRegression
 from .mlp import MLP
