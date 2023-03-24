@@ -35,7 +35,7 @@ class DataModule(LightningDataModule):
 
     def train_dataloader(self):
         self.train_data.transform = self.supervised_transform
-        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True,  num_workers=4)
+        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, num_workers=1)
 
     def train_dataloader_contrastive(self):
         self.train_data.transform = self.contrastive_transform
@@ -47,15 +47,15 @@ class DataModule(LightningDataModule):
 
     def train_dataloader_ordered(self):
         self.orig_train_data.transform = self.supervised_transform
-        return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False, num_workers=4)
+        return DataLoader(self.orig_train_data, batch_size=self.batch_size, shuffle=False, num_workers=1)
 
     def train_dataloader_inference(self, batch_size):
         self.train_data.transform = self.tensor_transform
-        return DataLoader(self.train_data, batch_size=batch_size, shuffle=False)
+        return DataLoader(self.train_data, batch_size=batch_size, shuffle=False, num_workers=1)
 
     def val_dataloader(self):
         self.val_data.transform = self.tensor_transform
-        return DataLoader(self.val_data, batch_size=self.batch_size, num_workers=4)
+        return DataLoader(self.val_data, batch_size=self.batch_size, num_workers=1)
 
     def val_dataloader_contrastive(self):
         self.val_data.transform = self.contrastive_transform
@@ -63,15 +63,15 @@ class DataModule(LightningDataModule):
 
     def test_dataloader(self):
         self.test_data.transform = self.tensor_transform
-        return DataLoader(self.test_data, batch_size=self.batch_size, shuffle=False, num_workers=4)
+        return DataLoader(self.test_data, batch_size=self.batch_size, shuffle=False, num_workers=1)
 
     def predict_dataloader(self):
         self.predict_data.transform = self.tensor_transform
-        return DataLoader(self.predict_data, batch_size=self.batch_size, shuffle=False, num_workers=4)
+        return DataLoader(self.predict_data, batch_size=self.batch_size, shuffle=False, num_workers=1)
 
     def extra_dataloader(self):
         self.extra_data.transform = self.tensor_transform
-        return DataLoader(self.extra_data, batch_size=self.batch_size, shuffle=False, num_workers=4)
+        return DataLoader(self.extra_data, batch_size=self.batch_size, shuffle=False, num_workers=1)
 
     @abc.abstractmethod
     def merge_train_and_extra_data(self):
