@@ -7,6 +7,7 @@ from .creation import datasets
 from .emnist import EMNISTDataModule
 from .fairface import FairFaceDataModule
 from .fashion_mnist import FashionMNISTDataModule
+from .har import HARDataModule
 from .imdb import IMDBDataModule
 from .kmnist import KMNISTDataModule
 from .mnist import MNISTDataModule

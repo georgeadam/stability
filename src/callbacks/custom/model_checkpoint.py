@@ -10,6 +10,7 @@ class ModelCheckpoint(LightningModelCheckpoint):
     def setup(self, trainer, pl_module, stage=None) -> None:
         self.dirpath = "checkpoints"
         self.filename = "{}".format(trainer.split) + "-{epoch}"
+        self.CHECKPOINT_NAME_LAST = "{}".format(trainer.split) + "-{epoch}"
         super().setup(trainer, pl_module, stage)
 
 
