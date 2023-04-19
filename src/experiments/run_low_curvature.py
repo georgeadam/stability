@@ -17,6 +17,7 @@ from src.gradient_projectors import gradient_projectors
 from src.gradient_projectors.utils import get_per_sample_gradients, grad_vector_to_parameters
 from src.losses import losses
 from src.models import models
+from src.optimizers import optimizers
 from src.utils.hydra import get_wandb_run
 
 os.chdir(ROOT_DIR)
@@ -71,7 +72,7 @@ def main(args: DictConfig):
 
     model = models.create(args.model.name, num_classes=dataset.num_classes, **dataset.stats, **args.model.params)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    optimizer = optimizers.create(args.optimizer, parameters=model.parameters(), lr=args.lr)
     loss_fn = losses.create(args.loss.name, **args.loss.params)
     device = "cuda:0"
     model = model.to(device)
