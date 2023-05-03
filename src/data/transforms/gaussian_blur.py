@@ -1,7 +1,9 @@
 import numpy as np
 import torch
 from torch import nn
-from torchvision.transforms import transforms
+from torchvision.transforms import transforms as torch_transforms
+
+from .creation import transforms
 
 
 class GaussianBlur(object):
@@ -23,8 +25,8 @@ class GaussianBlur(object):
             self.blur_v
         )
 
-        self.pil_to_tensor = transforms.ToTensor()
-        self.tensor_to_pil = transforms.ToPILImage()
+        self.pil_to_tensor = torch_transforms.ToTensor()
+        self.tensor_to_pil = torch_transforms.ToPILImage()
 
     def __call__(self, img):
         img = self.pil_to_tensor(img).unsqueeze(0)
@@ -45,3 +47,6 @@ class GaussianBlur(object):
         img = self.tensor_to_pil(img)
 
         return img
+
+
+transforms.register_builder("gaussian_blur", GaussianBlur)

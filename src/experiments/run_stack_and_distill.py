@@ -17,6 +17,7 @@ from settings import ROOT_DIR
 from src.callbacks import callbacks
 from src.data import datasets
 from src.data.stacking import StackingDataset
+from src.data.transforms import transforms
 from src.inferers import Prediction, StackingPrediction
 from src.lightning_modules import lightning_modules
 from src.models import models
@@ -109,7 +110,19 @@ def main(args: DictConfig):
     dataset.merge_train_and_extra_data()
     new_val_logits, new_test_logits, new_test_preds, _ = predict(args, dataset, "new")
 
+    if args.normalize:
+        base_transform = transforms.create("scaler")
+        base_transform.fit(original_val_logits)
+        new_transform = transforms.create("scaler")
+        new_transform.fit(new_val_logits)
+    else:
+        base_transform = None
+        new_transform = None
+
     stacking_train_dataset = StackingDataset(original_val_logits, new_val_logits, dataset.val_labels)
+    stacking_train_dataset.base_transform = base_transform
+    stacking_train_dataset.new_transform = new_transform
+
     stacking_val_dataset = copy.deepcopy(stacking_train_dataset)
     train_indices, val_indices = train_test_split(np.arange(len(stacking_train_dataset)),
                                                   test_size=0.2,
@@ -123,6 +136,8 @@ def main(args: DictConfig):
     stacking_val_dataset.labels = stacking_val_dataset.labels[val_indices]
 
     stacking_test_dataset = StackingDataset(original_test_logits, new_test_logits, dataset.test_labels)
+    stacking_test_dataset.base_transform = base_transform
+    stacking_test_dataset.new_transform = new_transform
 
     stacking_train_dataloader = torch.utils.data.DataLoader(stacking_train_dataset, batch_size=32, shuffle=True)
     stacking_val_dataloader = torch.utils.data.DataLoader(stacking_val_dataset, batch_size=32, shuffle=False)

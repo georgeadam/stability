@@ -3,6 +3,7 @@ alpha: 0.5
 data_name: mnist
 model_name: lenet
 random_state: null
+normalize: False
 num_layers: 1
 seed: 0
 hydra:
