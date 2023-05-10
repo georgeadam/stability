@@ -1,0 +1,5 @@
+name: curriculum
+defaults:
+    - optimizer@params.optimizer: adam
+    - lr_scheduler@params.lr_scheduler: constant
+params: {}

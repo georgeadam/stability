@@ -1,4 +1,5 @@
 from .creation import lightning_modules
+from .curriculum import Curriculum
 from .defer import Defer
 from .distill import Distill
 from .improved_kd import ImprovedKD

@@ -1,0 +1,15 @@
+experiment_name: curriculum
+defaults:
+    - callbacks: default
+    - data: mnist
+    - misc: default
+    - model: lenet
+    - lightning_module@orig_module: standard
+    - lightning_module@new_module: curriculum
+    - sampler: step
+    - scorer: correct
+    - trainer: default
+hydra:
+    run:
+        dir: results/${data.name}/${model.name}/${experiment_name}/${wandb_run:}
+    output_subdir: .
