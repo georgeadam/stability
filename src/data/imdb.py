@@ -153,7 +153,10 @@ def raw_to_processed(data, vocab, tokenizer):
     sentences = torch.permute(sentences, (1, 0))
 
     labels = np.array(labels)
-    labels = labels - 1  # IMDB labels are 1,2, convert to 0,1
+    labels[labels == "neg"] = 0
+    labels[labels == "pos"] = 1
+    labels = labels.astype("long")
+
     data = TextDataset(sentences, labels)
 
     return data
