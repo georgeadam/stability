@@ -1,0 +1,17 @@
+numpy==1.22.3
+omegaconf==2.2.2
+pandas==1.4.3
+Pillow==9.2.0
+PyHessian==0.1
+pytorch_lightning==1.7.0
+scikit_learn==1.1.1
+scipy==1.8.1
+torch==1.12.1
+torchdata==0.4.1
+torchmetrics==0.9.3
+torchtext==0.13.1
+torchvision==0.13.1
+tqdm==4.64.0
+wandb==0.13.4
+hydra-core==1.2.0
+quadprog==0.1.11
