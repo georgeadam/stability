@@ -24,6 +24,7 @@ from src.models import models
 from src.utils.hydra import get_wandb_run
 from src.utils.load import get_checkpoints, load_model, remove_prefix
 from src.utils.logging import log_final_metrics_defer
+from src.utils.wandb import WANDB_API_KEY
 
 os.chdir(ROOT_DIR)
 config_path = os.path.join(ROOT_DIR, "configs")
@@ -60,7 +61,7 @@ def get_model(config, run, dataset, split):
 
 
 def get_run(model_name, data_name, random_state, seed):
-    api = wandb.Api(timeout=6000, api_key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    api = wandb.Api(timeout=6000, api_key=WANDB_API_KEY)
     runs = api.runs('georgeadam/stability', {"$and": [
         {
             "config.experiment_name.value": "cold_start_checkpoint",
@@ -97,7 +98,7 @@ def main(args: DictConfig):
     )
 
     # Initial training
-    wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    wandb.login(key=WANDB_API_KEY)
     wandb_logger = WandbLogger(project="stability", prefix="initial",
                                name="{}_{}_{}-{}".format(args.data_name,
                                                          args.model_name,

@@ -19,6 +19,7 @@ from src.losses import losses
 from src.models import models
 from src.optimizers import optimizers
 from src.utils.hydra import get_wandb_run
+from src.utils.wandb import WANDB_API_KEY
 
 os.chdir(ROOT_DIR)
 config_path = os.path.join(ROOT_DIR, "configs")
@@ -78,7 +79,7 @@ def main(args: DictConfig):
     model = model.to(device)
     gradient_projector = gradient_projectors.create(args.gradient_projector.name, **args.gradient_projector.params)
 
-    wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    wandb.login(key=WANDB_API_KEY)
     wandb_logger = WandbLogger(project="stability")
     cfg = OmegaConf.to_container(
         args, resolve=True, throw_on_missing=True

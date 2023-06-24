@@ -1,9 +1,14 @@
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 
+from .wandb import WANDB_API_KEY
+
 
 def get_wandb_run():
-    wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    wandb.login(key=WANDB_API_KEY)
     WandbLogger(project="stability")
 
-    return wandb.run.id
+    if wandb.run is None:
+        return "missing_wandb"
+    else:
+        return wandb.run.id

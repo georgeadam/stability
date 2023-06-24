@@ -8,7 +8,7 @@ import wandb
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning import seed_everything
 
 from settings import ROOT_DIR
 from src.combiners import combiners
@@ -17,6 +17,7 @@ from src.models import models
 from src.utils.hydra import get_wandb_run
 from src.utils.inference import extract_predictions
 from src.utils.logging import log_final_metrics_defer
+from src.utils.wandb import WANDB_API_KEY
 
 os.chdir(ROOT_DIR)
 config_path = os.path.join(ROOT_DIR, "configs")
@@ -49,7 +50,7 @@ def main(args: DictConfig):
     cfg = OmegaConf.to_container(args, resolve=True, throw_on_missing=True)
 
     # Initial training
-    wandb.login(key="604640cf55056fd18bf07355ea2757e21a0c8d17")
+    wandb.login(key=WANDB_API_KEY)
     wandb_logger = WandbLogger(project="stability")
     wandb_logger.experiment.config.update(cfg)
 
